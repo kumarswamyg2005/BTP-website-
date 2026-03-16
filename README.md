@@ -24,7 +24,7 @@ Running it via a local server ensures that fetching visual assets and performing
 1. Open your terminal.
 2. Navigate to the project folder:
    ```bash
-   cd "/Users/kumaraswamy/Desktop/Unity website"
+   cd "/Users/your-device-name/Desktop/Unity website"
    ```
 3. Start a built-in Python HTTP server:
    ```bash
