@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unity Stream — Secure VR Streaming Platform</title>
+  <meta name="description"
+    content="Unity Stream: Enterprise-grade encrypted VR video streaming with headset management. Secure, fast, immersive." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/login.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <!-- A-Frame WebXR for 360° VR viewing -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- mpegts.js: required to play MPEG-2 TS (.ts) files in browser via MSE -->
+  <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+</head>
+
+<body>
+  <div class="bg-animated"></div>
+  <div class="bg-grid"></div>
+  <div id="toast-container"></div>
+
+  <!-- ═══ VR 360 VIEWER OVERLAY ═══ -->
+  <div id="vr-viewer" style="display:none; position:fixed; inset:0; z-index:9000; background:#000;">
+
+    <!-- A-Frame 360° scene
+         NOTE: video MUST be inside a-assets for WebXR head-tracking to work correctly.
+         We inject the blob src dynamically via JS into #vr-video-el before opening. -->
+    <a-scene id="vr-scene" embedded style="width:100vw; height:100vh;" vr-mode-ui="enabled: true"
+      loading-screen="enabled: false" background="color: #050811" renderer="colorManagement: true; antialias: true">
+
+      <!-- Assets block: video registered here so A-Frame buffers it properly -->
+      <a-assets>
+        <!-- Video source (injected via JS) -->
+        <video id="vr-video-el" crossorigin="anonymous" preload="auto" playsinline webkit-playsinline></video>
+      </a-assets>
+
+      <!-- 360° equirectangular sphere — video mapped on the inside -->
+      <a-videosphere id="vr-sphere" src="#vr-video-el" rotation="0 -90 0" segments-height="64" segments-width="64"
+        radius="100">
+      </a-videosphere>
+
+      <!-- Camera with look-controls = head tracking in VR headset -->
+      <a-camera id="vr-camera" look-controls="enabled: true; reverseMouseDrag: false; touchEnabled: true"
+        wasd-controls="enabled: false" position="0 0 0">
+      </a-camera>
+
+      <!-- Helper text visible in scene, disappears on entering VR -->
+      <a-entity position="0 0 -2.5" geometry="primitive: plane; width: 3; height: 0.6"
+        material="color: #050811; transparent: true; opacity: 0.8"
+        text="value: Move your mouse or head to look around. Click [VR] bottom-right to enter headset.; color: #4f8ef7; align: center; wrapCount: 40"
+        animation="property: components.material.material.opacity; to: 0; delay: 5000; dur: 1000; easing: easeOutQuad"
+        animation__2="property: components.text.material.uniforms.opacity.value; to: 0; delay: 5000; dur: 1000; easing: easeOutQuad">
+      </a-entity>
+    </a-scene>
+
+    <!-- Exit VR button (only visible outside headset) -->
+    <div id="vr-overlay-controls"
+      style="position:fixed; top:20px; left:20px; z-index:9999; display:flex; gap:12px; align-items:center;">
+      <button onclick="closeVRViewer()" style="
+        background: rgba(79,142,247,0.15); border:1px solid #4f8ef7;
+        color:#4f8ef7; font-family:Inter,sans-serif; font-weight:700;
+        padding:10px 20px; border-radius:8px; cursor:pointer; font-size:0.95rem;
+        backdrop-filter:blur(10px);">
+        ✕ Exit VR
+      </button>
+      <div style="
+        background: rgba(0,0,0,0.75); border:1px solid rgba(79,142,247,0.3);
+        color:#94a3b8; font-family:Inter,sans-serif;
+        padding:10px 16px; border-radius:8px; font-size:0.85rem;
+        backdrop-filter:blur(10px); display:flex; align-items:center; gap:8px;">
+        <span style="color:#4f8ef7; font-size:1.2rem;">🥽</span>
+        <div>
+          <div style="color:#f1f5f9; font-weight:700; margin-bottom:2px;">VR Headset: Put headset on → click <strong
+              style="color:#4f8ef7;">[⊙]</strong> bottom-right</div>
+          <div style="font-size:0.78rem;">Head tracking is active. Move your head to look around in 360°.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LOGIN PAGE ═══ -->
+  <div id="page-login" class="page-wrapper">
+    <div class="login-wrapper">
+
+      <!-- Left Panel -->
+      <div class="login-left">
+        <div class="login-brand">
+          <img src="assets/logo.png" alt="Unity Stream Logo" class="login-logo" />
+          <span class="login-brand-name">Unity Stream</span>
+        </div>
+
+        <div class="login-hero">
+          <div class="login-eyebrow">
+            <span class="login-eyebrow-line"></span>
+            Secure VR Platform
+          </div>
+          <h2 class="login-hero-title">Experience the Future of<br /><em>Immersive Streaming</em></h2>
+          <p class="login-hero-desc">Next-generation encrypted VR content delivery with intelligent headset management
+            and military-grade security.</p>
+
+          <div class="login-feature-list">
+            <div class="login-feature-item">
+              <div class="login-feature-icon">🔐</div>
+              <div class="login-feature-text">
+                <strong>End-to-End Encryption</strong>
+                <span>.bin encrypted video streams</span>
+              </div>
+            </div>
+            <div class="login-feature-item">
+              <div class="login-feature-icon">🥽</div>
+              <div class="login-feature-text">
+                <strong>Smart Headset Detection</strong>
+                <span>Auto-registers nearby VR devices</span>
+              </div>
+            </div>
+            <div class="login-feature-item">
+              <div class="login-feature-icon">☁️</div>
+              <div class="login-feature-text">
+                <strong>Cloud Storage</strong>
+                <span>Isolated per-user cloud instances</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="login-left-footer">
+          <div>
+            <div class="login-stat-value">AES-256</div>
+            <div class="login-stat-label">Encryption</div>
+          </div>
+          <div class="login-stat-sep"></div>
+          <div>
+            <div class="login-stat-value">3</div>
+            <div class="login-stat-label">User Roles</div>
+          </div>
+          <div class="login-stat-sep"></div>
+          <div>
+            <div class="login-stat-value">6+</div>
+            <div class="login-stat-label">VR Experiences</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Login Form -->
+      <div class="login-right">
+        <div class="login-card">
+          <div class="login-card-header">
+            <h2>Sign In</h2>
+            <p>Enter your credentials to access Unity Stream</p>
+          </div>
+
+          <form id="login-form" class="login-form" novalidate>
+            <!-- Inline auth error alert -->
+            <div id="auth-alert" class="auth-alert auth-alert-error" role="alert" aria-live="polite"></div>
+
+            <div class="form-group">
+              <label class="form-label" for="login-userid">User ID</label>
+              <div class="input-icon-wrap">
+                <span class="input-icon">👤</span>
+                <input type="text" id="login-userid" class="form-input" placeholder="Enter your User ID"
+                  autocomplete="username" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password</label>
+              <div class="input-icon-wrap">
+                <span class="input-icon">🔑</span>
+                <input type="password" id="login-password" class="form-input" placeholder="Enter your password"
+                  autocomplete="current-password" required />
+                <button type="button" id="toggle-password" class="input-action"
+                  aria-label="Toggle password visibility">👁</button>
+              </div>
+            </div>
+
+            <div class="login-options">
+              <label class="checkbox-wrap">
+                <input type="checkbox" id="remember-me" />
+                <span class="checkbox-label">Remember this device</span>
+              </label>
+              <a href="#" class="link-subtle" onclick="return false">Forgot password?</a>
+            </div>
+
+            <button type="submit" id="login-btn" class="btn btn-primary login-submit-btn">
+              <span id="login-btn-text">Sign In</span>
+              <div id="login-spinner" class="spinner hidden"></div>
+            </button>
+
+            <div class="login-divider">
+              <span>Demo Credentials</span>
+            </div>
+            <div class="demo-creds">
+              <button type="button" class="demo-btn" data-user="admin_01" data-pass="unity@2025">
+                <span class="demo-id">admin_01</span>
+                <span class="demo-role">Admin</span>
+              </button>
+              <button type="button" class="demo-btn" data-user="editor_01" data-pass="unity@2025">
+                <span class="demo-id">editor_01</span>
+                <span class="demo-role">Editor</span>
+              </button>
+              <button type="button" class="demo-btn" data-user="playerdev_01" data-pass="unity@2025">
+                <span class="demo-id">playerdev_01</span>
+                <span class="demo-role">Player Dev</span>
+              </button>
+            </div>
+          </form>
+
+          <p class="login-footer">
+            Unity Stream v2.0 &nbsp;|&nbsp; ARDS × CAC × CSC Division
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN APP ═══ (hidden until login) -->
+  <div id="page-app" class="hidden">
+
+    <!-- NAVBAR -->
+    <nav class="navbar glass" id="main-navbar">
+      <div class="container navbar-inner">
+        <div class="navbar-brand" onclick="switchTab('home')" style="cursor:pointer">
+          <img src="assets/logo.png" alt="Unity Stream" class="nav-logo" />
+          <span class="nav-brand-name">Unity Stream</span>
+        </div>
+
+        <div class="navbar-tabs" role="tablist">
+          <button class="nav-tab active" id="tab-home" onclick="switchTab('home')" role="tab" aria-selected="true">
+            <span>🏠</span> Home
+          </button>
+          <button class="nav-tab" id="tab-headsets" onclick="switchTab('headsets')" role="tab">
+            <span>🥽</span> Headsets
+          </button>
+          <button class="nav-tab" id="tab-cloud" onclick="switchTab('cloud')" role="tab">
+            <span>☁️</span> Cloud
+          </button>
+        </div>
+
+        <div class="navbar-right">
+          <div class="headset-status-pill" id="headset-pill" title="Active headset">
+            <span class="pulse-dot online" id="nav-headset-dot"></span>
+            <span id="nav-headset-name">No headset</span>
+          </div>
+          <div class="user-avatar-wrap" onclick="toggleUserMenu()">
+            <div class="user-avatar" id="user-avatar-nav">K</div>
+            <div class="user-menu glass" id="user-dropdown" style="display:none">
+              <div class="user-menu-info">
+                <strong id="menu-username">kumar_01</strong>
+                <span id="menu-role">Admin</span>
+              </div>
+              <div class="divider" style="margin:10px 0"></div>
+              <button class="user-menu-item" onclick="switchTab('cloud')">☁️ Cloud Settings</button>
+              <button class="user-menu-item" onclick="openProfileModal()">👤 Profile</button>
+              <div class="divider" style="margin:10px 0"></div>
+              <button class="user-menu-item danger" onclick="logout()">🚪 Sign Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── HOME TAB ── -->
+    <div id="tab-content-home" class="tab-content active" style="padding-top: var(--navbar-h)">
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <div class="container hero-inner">
+          <div class="hero-text">
+            <div class="badge badge-cyan hero-badge anim-fade-up">
+              <span class="pulse-dot online"></span> VR Encrypted Library
+            </div>
+            <h1 class="hero-title anim-fade-up" style="animation-delay:0.1s">
+              Immersive Content,<br /><span class="gradient-text">Unbreakable Security</span>
+            </h1>
+            <p class="hero-desc anim-fade-up" style="animation-delay:0.2s">
+              Browse, select, and stream encrypted VR experiences directly to your registered headset. Content is
+              decrypted and rendered in real-time by the Unity Player.
+            </p>
+            <div class="hero-actions anim-fade-up" style="animation-delay:0.3s">
+              <button class="btn btn-primary" onclick="scrollToVideos()">▶ Browse Content</button>
+              <button class="btn btn-outline" onclick="switchTab('headsets')">🥽 Manage Headset</button>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-card glass">
+              <div class="stat-value" id="stat-total">6</div>
+              <div class="stat-label">Total Videos</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value cyan" id="stat-headsets">0</div>
+              <div class="stat-label">Active Headsets</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value purple">AES-256</div>
+              <div class="stat-label">Encryption</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Library -->
+      <div class="container" id="video-library-section" style="padding-bottom: 60px">
+        <div class="library-toolbar">
+          <h2 class="section-title">Encrypted Library</h2>
+          <div class="library-filters">
+            <button id="btn-upload-video" class="btn btn-outline hidden" onclick="openUploadModal()">
+              + Upload .BIN
+            </button>
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="video-search" class="form-input search-input" placeholder="Search videos..."
+                oninput="filterVideos()" />
+            </div>
+            <select id="category-filter" class="form-input filter-select" onchange="filterVideos()">
+              <option value="all">All Categories</option>
+              <option value="training">Training</option>
+              <option value="simulation">Simulation</option>
+              <option value="experience">Experience</option>
+              <option value="neural">Neural</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="video-grid" id="video-grid">
+          <!-- Cards injected by JS -->
+        </div>
+
+        <div class="empty-state hidden" id="no-videos-msg">
+          <div class="empty-icon">🔍</div>
+          <h3>No videos found</h3>
+          <p>Try adjusting your search or filter.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HEADSET TAB ── -->
+    <div id="tab-content-headsets" class="tab-content" style="padding-top: var(--navbar-h)">
+      <div class="container" style="padding-top:40px; padding-bottom:60px">
+        <h2 class="section-title">Headset Management</h2>
+        <p class="section-desc">Each headset can only be registered to one active session at a time. The system ensures
+          exclusive access — your headset won't be shared across simultaneous logins.</p>
+
+        <!-- Scanner Panel -->
+        <div class="headset-scanner-card glass">
+          <div class="scanner-header">
+            <div>
+              <h3>Nearby Headset Scan</h3>
+              <p>Detect VR devices on your local network</p>
+            </div>
+            <button class="btn btn-primary" id="scan-btn" onclick="startScan()">
+              <span id="scan-btn-text">🥽 Start Scan</span>
+              <div class="spinner hidden" id="scan-spinner"></div>
+            </button>
+          </div>
+
+          <div class="scan-progress-wrap hidden" id="scan-progress-wrap">
+            <div class="scan-animation">
+              <div class="radar-ring"></div>
+              <div class="radar-ring" style="animation-delay:0.5s"></div>
+              <div class="radar-ring" style="animation-delay:1s"></div>
+              <div class="radar-blip" id="radar-blip"></div>
+              <div class="radar-icon">🥽</div>
+            </div>
+            <div class="scan-status-text">
+              <p id="scan-status-msg">Scanning network for nearby VR headsets…</p>
+              <div class="progress-bar" style="margin-top:12px">
+                <div class="progress-fill" id="scan-progress-fill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="discovered-list" id="discovered-list" style="margin-top:24px">
+            <!-- discovered devices go here -->
+          </div>
+        </div>
+
+        <!-- Registered Headsets -->
+        <div style="margin-top:36px">
+          <h3 class="section-title">Registered Headsets</h3>
+          <div id="registered-headsets-list" class="registered-list">
+            <!-- populated by JS -->
+          </div>
+          <div id="no-headsets-msg" class="empty-state">
+            <div class="empty-icon">🥽</div>
+            <h3>No headsets registered</h3>
+            <p>Scan for nearby devices to register a VR headset to your account.</p>
+          </div>
+        </div>
+
+        <!-- Lock/Exclusivity info box -->
+        <div class="info-box glass" style="margin-top:36px">
+          <div class="info-box-icon">🔒</div>
+          <div>
+            <strong>Exclusive Headset Lock</strong>
+            <p>When you register a headset, it is exclusively bound to your session token. If another Unity Stream
+              instance attempts to detect the same headset, the system will deny registration. You must release your
+              headset to allow another user to claim it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CLOUD TAB ── -->
+    <div id="tab-content-cloud" class="tab-content" style="padding-top: var(--navbar-h)">
+      <div class="container" style="padding-top:40px; padding-bottom:60px">
+        <h2 class="section-title">Cloud Storage</h2>
+        <p class="section-desc">Your personal cloud instance — isolated from other users. Videos are stored encrypted
+          and only accessible from your account.</p>
+
+        <!-- Cloud Status Card -->
+        <div class="cloud-status-card glass">
+          <div class="cloud-status-header">
+            <div class="cloud-icon-wrap">☁️</div>
+            <div class="cloud-status-info">
+              <h3>Personal Cloud Instance</h3>
+              <div class="badge badge-success" id="cloud-status-badge">
+                <span class="pulse-dot online"></span> Active
+              </div>
+            </div>
+            <div class="cloud-status-id">
+              <span class="form-label">Instance ID</span>
+              <code id="cloud-instance-id" class="mono-code">–</code>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="cloud-stats-grid">
+            <div class="cloud-stat">
+              <div class="cloud-stat-value" id="cloud-used">4.2 GB</div>
+              <div class="cloud-stat-label">Used</div>
+            </div>
+            <div class="cloud-stat">
+              <div class="cloud-stat-value">50 GB</div>
+              <div class="cloud-stat-label">Total</div>
+            </div>
+            <div class="cloud-stat">
+              <div class="cloud-stat-value" id="cloud-files">6</div>
+              <div class="cloud-stat-label">Encrypted Files</div>
+            </div>
+            <div class="cloud-stat">
+              <div class="cloud-stat-value">AES-256</div>
+              <div class="cloud-stat-label">Encryption</div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px">
+            <div class="d-flex-between" style="margin-bottom:8px">
+              <span class="form-label">Storage Usage</span>
+              <span class="mono-code" style="font-size:0.8rem">4.2 / 50 GB</span>
+            </div>
+            <div class="progress-bar" style="height:8px">
+              <div class="progress-fill" style="width:8.4%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sync Settings -->
+        <div class="glass" style="padding:28px; border-radius:var(--radius-lg); margin-top:28px">
+          <h3 class="section-title" style="margin-bottom:20px">Sync Settings</h3>
+          <div class="settings-grid">
+            <div class="setting-row">
+              <div>
+                <strong>Auto-sync on Login</strong>
+                <p>Sync your video library when signing in</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked id="sync-login" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div>
+                <strong>Encrypt at Rest</strong>
+                <p>All videos stored encrypted in cloud</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked disabled />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div>
+                <strong>Isolated Instance</strong>
+                <p>Your cloud storage is never shared with other users</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked disabled />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div>
+                <strong>Download Prevention</strong>
+                <p>Block any attempt to download raw video files</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked disabled />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <button class="btn btn-purple" style="margin-top:24px" onclick="syncCloud()">
+            🔄 Sync Now
+          </button>
+        </div>
+
+        <!-- Cloud File List -->
+        <div style="margin-top:28px">
+          <h3 class="section-title">Encrypted Files</h3>
+          <div id="cloud-file-list" class="cloud-file-list">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ VIDEO MODAL ═══ -->
+  <div class="modal-overlay" id="video-modal">
+    <div class="modal-box" style="max-width:700px">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="modal-video-title">Video Title</h2>
+          <div style="display:flex; gap:8px; margin-top:6px">
+            <span class="badge badge-purple" id="modal-video-cat">Category</span>
+            <span class="badge badge-cyan">🔐 Encrypted</span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeVideoModal()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="video-preview-area" id="modal-thumb-wrap">
+        <img id="modal-thumb" src="" alt="Video thumbnail" />
+        <div class="video-lock-overlay" id="modal-lock-overlay">
+          <div class="lock-icon">🔐</div>
+          <p>Encrypted Stream</p>
+          <span>Decrypted &amp; rendered by Unity Player</span>
+        </div>
+      </div>
+
+      <div class="modal-info-grid">
+        <div class="modal-info-item">
+          <span class="form-label">Duration</span>
+          <strong id="modal-duration">–</strong>
+        </div>
+        <div class="modal-info-item">
+          <span class="form-label">Resolution</span>
+          <strong id="modal-resolution">–</strong>
+        </div>
+        <div class="modal-info-item">
+          <span class="form-label">File Size</span>
+          <strong id="modal-size">–</strong>
+        </div>
+        <div class="modal-info-item">
+          <span class="form-label">Encryption</span>
+          <strong class="cyan">AES-256-CBC</strong>
+        </div>
+      </div>
+
+      <p style="color:var(--text-secondary); font-size:0.9rem; margin: 16px 0" id="modal-desc"></p>
+
+      <div class="divider"></div>
+
+      <div class="modal-actions">
+        <div id="no-headset-warning" class="warn-box hidden">
+          ⚠️ No headset registered. <button class="link-btn" onclick="closeVideoModal();switchTab('headsets')">Register
+            one →</button>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap">
+          <button class="btn btn-primary" id="modal-stream-btn" onclick="streamVideo()">
+            ▶ Stream to Headset
+          </button>
+          <button class="btn btn-outline" onclick="closeVideoModal()">Cancel</button>
+        </div>
+        <div class="download-blocked-note">
+          <span>⛔</span> Download disabled — content is encrypted and stream-only
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal (Admin Only) -->
+  <div id="upload-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">🔐 Upload Encrypted Video</h2>
+          <p style="font-size:0.83rem;color:var(--text-secondary);margin-top:4px;">Admin access only &bull; Accepts .bin
+            and .ts encrypted files</p>
+        </div>
+        <button class="modal-close" onclick="closeUploadModal()">✕</button>
+      </div>
+
+      <form id="upload-form">
+        <div class="form-group">
+          <label class="form-label" for="up-file">Encrypted Video File (.bin or .ts)</label>
+          <input class="form-input" type="file" id="up-file" accept=".bin,.ts" required />
+          <span id="upload-file-preview" style="font-size:0.83rem;margin-top:6px;display:block;"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="up-title">Descriptive Title</label>
+          <input class="form-input" type="text" id="up-title" placeholder="e.g. Tactical Simulation Beta" required />
+        </div>
+
+        <div class="form-group" style="display: flex; gap: 16px;">
+          <div style="flex: 1;">
+            <label class="form-label" for="up-cat">Category</label>
+            <select class="form-input" id="up-cat" style="width: 100%;">
+              <option value="training">Training</option>
+              <option value="experience">Experience</option>
+              <option value="simulation">Simulation</option>
+              <option value="neural">Neural</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label">Encryption</label>
+            <input class="form-input" type="text" value="AES-256-CBC (locked)" disabled />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="up-desc">Description</label>
+          <textarea class="form-input" id="up-desc" rows="2"
+            placeholder="Brief description of this video content..."></textarea>
+        </div>
+
+        <div class="warn-box" style="margin-bottom: 20px;">
+          <span>⚠️ File is read into memory, decrypted in-browser with WebCrypto (AES-256-CBC) only when played. File is
+            never stored to disk or transmitted.</span>
+        </div>
+
+        <button type="submit" id="upload-submit-btn" class="btn btn-primary" style="width: 100%;">
+          Start Secure Upload
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="js/app.js"></script>
+</body>
+
+</html>
