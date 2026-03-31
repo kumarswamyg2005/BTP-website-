@@ -127,16 +127,15 @@ ul {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(
-      ellipse 70% 50% at 15% 0%,
-      rgba(79, 142, 247, 0.06) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 50% 40% at 85% 90%,
-      rgba(124, 92, 252, 0.05) 0%,
-      transparent 55%
-    );
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(79, 142, 247, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 90%, rgba(124, 92, 252, 0.07) 0%, transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(10, 11, 18, 1) 0%, rgba(5, 7, 12, 1) 100%);
+  animation: bgbreathe 20s ease-in-out infinite alternate;
+}
+@keyframes bgbreathe {
+  0% { filter: hue-rotate(0deg) brightness(1); }
+  50% { filter: hue-rotate(10deg) brightness(1.1); }
+  100% { filter: hue-rotate(-10deg) brightness(0.95); }
 }
 .bg-grid {
   display: none;
@@ -178,11 +177,9 @@ ul {
 
 /* ── Surface / Card ── */
 .glass {
-  background: rgba(19, 22, 31, 0.85);
+  background: #13161f;
   border: 1px solid rgba(255, 255, 255, 0.065);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Buttons ── */
@@ -218,13 +215,32 @@ ul {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.14) inset,
     0 2px 8px rgba(79, 142, 247, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+  transform: skewX(-20deg);
+  transition: none;
+}
+.btn-primary:hover::before {
+  animation: shine 1s ease 1;
+}
+@keyframes shine {
+  100% { left: 200%; }
 }
 .btn-primary:hover:not(:disabled) {
-  filter: brightness(1.07);
+  filter: brightness(1.1);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.14) inset,
-    0 5px 16px rgba(79, 142, 247, 0.38);
-  transform: translateY(-1px);
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 5px 20px rgba(79, 142, 247, 0.5);
+  transform: translateY(-2px);
 }
 
 .btn-purple {
@@ -659,10 +675,15 @@ textarea.form-input {
 
 /* ── Gradient text utility ── */
 .gradient-text {
-  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+  background: linear-gradient(to right, var(--accent) 20%, #a78bfa 40%, #ff8bf8 60%, var(--accent) 80%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: shineText 4s linear infinite;
+}
+@keyframes shineText {
+  to { background-position: 200% center; }
 }
 
 /* ── Inline alert ── */

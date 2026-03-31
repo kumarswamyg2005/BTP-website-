@@ -525,17 +525,41 @@
   }
 }
 
+/* VR headset / tablet — stack panels, keep branding visible */
 @media (max-width: 960px) {
   .login-wrapper {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
+
+  /* Show a compact top-banner instead of hiding the left panel */
   .login-left {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 28px 28px;
+    min-height: unset;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Keep brand + particle, collapse everything else */
+  .login-hero {
+    padding: 16px 0 0;
+  }
+
+  .login-feature-list,
+  .login-eyebrow,
+  .login-left-footer {
     display: none;
   }
+
+  .login-hero-desc {
+    display: none;
+  }
+
   .login-right {
-    padding: 48px 24px;
+    padding: 32px 24px 48px;
     justify-content: flex-start;
-    padding-top: 64px;
   }
   .login-card {
     max-width: 100%;
@@ -548,5 +572,55 @@
   }
   .login-card-header h2 {
     font-size: 1.7rem;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   VR / COARSE POINTER OVERRIDES
+   Applies when input is a controller ray, touch, etc.
+   Bigger tap targets, no backdrop-filter, larger text.
+══════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  /* Bigger inputs — easier to select with controller ray */
+  .input-icon-wrap .form-input {
+    height: 56px;
+    font-size: 0.97rem;
+  }
+
+  /* Bigger submit button */
+  .login-submit-btn {
+    height: 56px;
+    font-size: 1rem;
+  }
+
+  /* Bigger checkbox + label tap area */
+  .checkbox-wrap {
+    padding: 6px 0;
+    gap: 12px;
+  }
+  .checkbox-wrap input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+  .checkbox-wrap .checkbox-label {
+    font-size: 0.9rem;
+  }
+
+  /* Bigger forgot password link */
+  .link-subtle {
+    font-size: 0.9rem;
+    padding: 4px 0;
+  }
+
+  /* Larger card heading */
+  .login-card-header h2 {
+    font-size: 1.75rem;
+  }
+
+  /* Remove backdrop-filter — not needed, saves GPU */
+  .login-left::before,
+  .login-left::after,
+  .login-right::before {
+    display: none;
   }
 }

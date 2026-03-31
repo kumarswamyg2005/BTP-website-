@@ -10,28 +10,9 @@
 "use strict";
 
 /* ─────────────────────────────────────────────────
-   USERS  (role-based, no personal names)
+   USERS  — loaded from js/users.js (LOCAL_USERS)
+   To add/change credentials edit js/users.js only.
 ───────────────────────────────────────────────── */
-const USERS = {
-  admin_01: {
-    password: "unity@2025",
-    role: "Admin",
-    initial: "A",
-    cloudGb: 4.2,
-  },
-  editor_01: {
-    password: "unity@2025",
-    role: "Editor",
-    initial: "E",
-    cloudGb: 1.8,
-  },
-  playerdev_01: {
-    password: "unity@2025",
-    role: "Player Dev",
-    initial: "P",
-    cloudGb: 7.1,
-  },
-};
 
 /* ─────────────────────────────────────────────────
    VIDEOS  (source truths; admins add more)
@@ -135,9 +116,9 @@ function saveSession() {
 
 function restoreSession() {
   const uid = sessionStorage.getItem("unity_user");
-  if (!uid || !USERS[uid]) return false;
+  if (!uid || !LOCAL_USERS[uid.toLowerCase()]) return false;
   state.currentUser = uid;
-  state.currentUserData = USERS[uid];
+  state.currentUserData = LOCAL_USERS[uid.toLowerCase()];
   state.registeredHeadsets = JSON.parse(
     sessionStorage.getItem("unity_headsets") || "[]",
   );
@@ -203,14 +184,6 @@ function toast(message, type = "info", duration = 3500) {
 /* ─────────────────────────────────────────────────
    AUTH
 ───────────────────────────────────────────────── */
-document.querySelectorAll(".demo-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.getElementById("login-userid").value = btn.dataset.user;
-    document.getElementById("login-password").value = btn.dataset.pass;
-    hideAuthAlert();
-  });
-});
-
 document.getElementById("toggle-password").addEventListener("click", () => {
   const inp = document.getElementById("login-password");
   const btn = document.getElementById("toggle-password");
@@ -263,11 +236,11 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   spinner.classList.remove("hidden");
   btn.disabled = true;
 
-  await sleep(1200);
+  await sleep(900);
 
-  const user = USERS[userId];
-  if (!user || user.password !== password) {
-    showAuthAlert("Invalid User ID or password. Please try again.");
+  const user = await AuthService.login(userId, password);
+  if (!user) {
+    showAuthAlert("Invalid credentials. Please check your username and password.");
     btnText.textContent = "Sign In";
     spinner.classList.add("hidden");
     btn.disabled = false;
@@ -275,7 +248,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     return;
   }
 
-  state.currentUser = userId;
+  state.currentUser = userId.trim().toLowerCase();
   state.currentUserData = user;
   saveSession();
   enterApp();
