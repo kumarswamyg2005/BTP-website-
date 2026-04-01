@@ -175,11 +175,17 @@ export default function VideoModal({ video, onClose }) {
         src = URL.createObjectURL(blob);
         blobRef.current = src;
       } catch (err) {
-        stopMatrix();
-        setPhase('idle');
-        setBtnLabel('▶ Decrypt & Play');
-        toast('Failed to fetch or decrypt the video file.', 'error');
-        return;
+        // .bin not available (e.g. not deployed) — fall back to plain src if present
+        if (video.src) {
+          toast('Encrypted file unavailable — playing standard stream.', 'info', 4000);
+          src = video.src;
+        } else {
+          stopMatrix();
+          setPhase('idle');
+          setBtnLabel('▶ Decrypt & Play');
+          toast('Failed to fetch or decrypt the video file.', 'error');
+          return;
+        }
       }
     } else {
       // Case 3: direct local or blob URL — play directly

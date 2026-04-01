@@ -33,7 +33,7 @@ export default function VRViewer({ src, onClose }) {
     const scene = sceneRef.current;
     if (!video || !scene) return;
 
-    video.src         = src;
+    // src is already set via JSX attribute — just ensure flags are correct
     video.loop        = true;
     video.muted       = true;
     video.playsInline = true;
@@ -42,6 +42,15 @@ export default function VRViewer({ src, onClose }) {
       if (closedRef.current) return;
       setLoading(false);
       video.play().catch(() => {});
+
+      // Force the sphere to re-bind the texture now that video is ready.
+      // Needed because A-Frame may have processed <a-assets> before canplay fired.
+      const sphere = scene.querySelector('#vr-sphere');
+      if (sphere) {
+        sphere.removeAttribute('src');
+        sphere.setAttribute('src', '#vr-video-asset');
+      }
+
       toast('🥽 360° active! Tap 🔊 to unmute. Click [⊙] bottom-right for headset.', 'success', 9000);
     }
 
@@ -200,10 +209,11 @@ export default function VRViewer({ src, onClose }) {
         style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}
         onClick={handleUnmute}
       >
-        <a-assets>
+        <a-assets timeout="30000">
           <video
             id="vr-video-asset"
             ref={videoRef}
+            src={src}
             playsInline
             webkit-playsinline=""
             preload="auto"

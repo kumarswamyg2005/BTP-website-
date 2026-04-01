@@ -9,6 +9,7 @@ export const VIDEOS = [
     thumb: '/thumb1.png',
     binSrc: '/cable_car_encrypted.bin',
     binMime: 'video/mp4',
+    src: '/vr_4k.mp4',   // fallback if .bin is not deployed
     desc: 'An immersive 360° cable car journey. AES-256-CTR encrypted — decrypted and rendered in real-time by the Unity Player.',
   },
   {
