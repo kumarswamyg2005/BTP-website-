@@ -54,7 +54,7 @@ function runMatrixAnimation(canvas, wrap) {
 }
 
 export default function VideoModal({ video, onClose }) {
-  const { activeHeadset } = useAuth();
+  const { activeHeadset, registeredHeadsets } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -64,6 +64,8 @@ export default function VideoModal({ video, onClose }) {
   const [vrOpen, setVrOpen]     = useState(false);
   const [btnLabel, setBtnLabel] = useState('▶ Decrypt & Play');
   const [loadError, setLoadError] = useState(false);
+  // Sync broadcast state — simulates multi-headset synchronized playback
+  const [syncStatus, setSyncStatus] = useState({});
 
   const wrapRef       = useRef(null);
   const matrixCanRef  = useRef(null);
@@ -193,9 +195,25 @@ export default function VideoModal({ video, onClose }) {
     setPhase('playing');
     setBtnLabel('⏹ Stop');
     toast('▶ Playing. Click "View in 360° VR" to go immersive!', 'success', 6000);
+
+    // ── Simulate synchronized broadcast to all registered headsets ──
+    // (Project Objective 4: synchronized playback across multiple VR devices)
+    if (registeredHeadsets.length > 0) {
+      const initial = {};
+      registeredHeadsets.forEach(h => { initial[h.id] = 'buffering'; });
+      setSyncStatus(initial);
+
+      // Stagger each headset coming online for realism
+      registeredHeadsets.forEach((h, i) => {
+        setTimeout(() => {
+          setSyncStatus(prev => ({ ...prev, [h.id]: 'streaming' }));
+        }, 800 + i * 600);
+      });
+    }
   }
 
   function handleStopAndClose() {
+    setSyncStatus({});
     handleClose();
   }
 
@@ -318,6 +336,64 @@ export default function VideoModal({ video, onClose }) {
               </>
             )}
           </div>
+
+          {/* ── Sync Broadcast Panel — shown while playing with headsets ── */}
+          {isPlaying && Object.keys(syncStatus).length > 0 && (
+            <div style={{
+              margin: '14px 0 0',
+              background: 'rgba(34,211,165,0.06)',
+              border: '1px solid rgba(34,211,165,0.25)',
+              borderRadius: 12,
+              padding: '14px 18px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: '1.1rem' }}>📡</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#22d3a5' }}>
+                  Synchronized Broadcast Active
+                </span>
+                <span style={{
+                  marginLeft: 'auto',
+                  fontSize: '0.75rem',
+                  color: '#22d3a5',
+                  background: 'rgba(34,211,165,0.12)',
+                  border: '1px solid rgba(34,211,165,0.3)',
+                  borderRadius: 100,
+                  padding: '2px 10px',
+                  fontWeight: 700,
+                }}>
+                  {Object.values(syncStatus).filter(s => s === 'streaming').length} / {Object.keys(syncStatus).length} online
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {registeredHeadsets.map(h => {
+                  const status = syncStatus[h.id] || 'buffering';
+                  const isOnline = status === 'streaming';
+                  return (
+                    <div key={h.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      fontSize: '0.82rem',
+                    }}>
+                      <span style={{
+                        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                        background: isOnline ? '#22d3a5' : '#fbbf24',
+                        boxShadow: isOnline ? '0 0 6px #22d3a5' : '0 0 6px #fbbf24',
+                      }} />
+                      <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{h.model}</span>
+                      <span style={{ color: '#64748b', fontSize: '0.75rem' }}>{h.id}</span>
+                      <span style={{
+                        marginLeft: 'auto',
+                        color: isOnline ? '#22d3a5' : '#fbbf24',
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                      }}>
+                        {isOnline ? '▶ Streaming' : '⏳ Buffering…'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Info grid */}
           <div className="modal-info-grid">

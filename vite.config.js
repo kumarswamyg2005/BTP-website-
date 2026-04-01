@@ -15,8 +15,6 @@ export default defineConfig({
       'Access-Control-Allow-Headers': 'Range, Content-Type',
       // Tell browsers and video players that range requests are supported
       'Accept-Ranges': 'bytes',
-      // Required for popup isolation
-      'Cross-Origin-Opener-Policy': 'same-origin',
     },
   },
 })
