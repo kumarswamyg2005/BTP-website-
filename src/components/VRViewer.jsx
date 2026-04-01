@@ -210,7 +210,6 @@ export default function VRViewer({ src, onClose }) {
             preload="auto"
             muted
             loop
-            crossOrigin="anonymous"
           />
         </a-assets>
 
