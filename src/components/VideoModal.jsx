@@ -180,7 +180,7 @@ export default function VideoModal({ video, onClose }) {
         return;
       }
     } else {
-      // Case 3: Cloudinary CDN or local asset — play directly
+      // Case 3: direct local or blob URL — play directly
       src = video.src || video.srcFallback || '/vr_4k.mp4';
     }
 
