@@ -1,15 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useToast } from '../context/ToastContext.jsx';
 
 /*
   VRViewer — A-Frame 360° VR player
   ─────────────────────────────────────────────────────────────
-  Fixes for Meta Quest:
-  • No `embedded` attribute — A-Frame manages fullscreen/WebXR session properly
-  • Video starts muted (autoplay policy on Quest requires muted start)
-  • `src="#vr-video-asset"` set directly in JSX on the sphere (no dynamic setAttribute)
-  • webkit-playsinline + playsInline on the video element for Quest/iOS
+  Renders via ReactDOM.createPortal to document.body so it is
+  completely outside any framer-motion stacking context — this is
+  why the navbar was bleeding through (z-index is scoped to the
+  nearest stacking context ancestor; framer-motion creates one).
+
+  Quest fixes:
+  • Video starts muted — autoplay policy on Quest requires muted start
+  • `src="#vr-video-asset"` set directly in JSX on the sphere
+  • webkit-playsinline + playsInline on the video element
   • Unmute button so user can tap to enable audio
+  • `embedded` kept so A-Frame canvas stays inside our full-screen
+    portal wrapper (prevents canvas from fighting document layout)
 */
 export default function VRViewer({ src, onClose }) {
   const toast = useToast();
@@ -26,21 +33,16 @@ export default function VRViewer({ src, onClose }) {
     const scene = sceneRef.current;
     if (!video || !scene) return;
 
-    // Always start muted — required for autoplay on Quest and modern browsers
-    video.src        = src;
-    video.loop       = true;
-    video.muted      = true;
+    video.src         = src;
+    video.loop        = true;
+    video.muted       = true;
     video.playsInline = true;
 
     function onCanPlay() {
       if (closedRef.current) return;
       setLoading(false);
-      // Muted autoplay works on Quest without a gesture
       video.play().catch(() => {});
-      toast(
-        '🥽 360° active! Tap 🔊 to unmute. Click [⊙] bottom-right to enter headset.',
-        'success', 9000
-      );
+      toast('🥽 360° active! Tap 🔊 to unmute. Click [⊙] bottom-right for headset.', 'success', 9000);
     }
 
     function onError() {
@@ -82,7 +84,6 @@ export default function VRViewer({ src, onClose }) {
     onClose();
   }
 
-  // Tap anywhere on the scene — unmute
   function handleUnmute() {
     const video = videoRef.current;
     if (!video) return;
@@ -94,13 +95,17 @@ export default function VRViewer({ src, onClose }) {
     }
   }
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: '#000' }}>
+  const content = (
+    <div style={{
+      position: 'fixed', inset: 0,
+      zIndex: 99999,          /* above navbar (500), modals (800), toasts (9999) */
+      background: '#000',
+    }}>
 
       {/* Loading overlay */}
       {loading && !error && (
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 9100,
+          position: 'absolute', inset: 0, zIndex: 2,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           background: '#050811', gap: 20,
@@ -124,7 +129,7 @@ export default function VRViewer({ src, onClose }) {
       {/* Error overlay */}
       {error && (
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 9100,
+          position: 'absolute', inset: 0, zIndex: 2,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           background: '#050811', gap: 16,
@@ -137,12 +142,12 @@ export default function VRViewer({ src, onClose }) {
         </div>
       )}
 
-      {/* Exit / unmute bar */}
+      {/* Exit / unmute bar — z-index 3 so it floats above the a-scene canvas */}
       <div
         id="vr-exit-overlay"
         style={{
-          position: 'fixed', top: 20, left: 20,
-          zIndex: 9200,
+          position: 'absolute', top: 20, left: 20,
+          zIndex: 3,
           display: 'flex', gap: 12, alignItems: 'center',
           transition: 'opacity 0.4s ease',
         }}
@@ -151,7 +156,6 @@ export default function VRViewer({ src, onClose }) {
           ✕ Exit VR
         </button>
 
-        {/* Unmute button — prominent so Quest users can tap it */}
         {muted && (
           <button
             onClick={handleUnmute}
@@ -181,27 +185,22 @@ export default function VRViewer({ src, onClose }) {
       </div>
 
       {/* ── A-Frame scene ────────────────────────────────────────────────
-           No `embedded` attribute — required for proper WebXR/VR mode on Quest.
-           Without embedded, A-Frame manages the canvas fullscreen itself.
+           `embedded` keeps the canvas inside this portal div.
+           Without it A-Frame fights document.body layout and leaves black bars.
+           The portal itself is fixed + inset:0 so it covers the full screen.
       ─────────────────────────────────────────────────────────────────── */}
       <a-scene
         ref={sceneRef}
+        embedded
         vr-mode-ui="enabled: true"
         loading-screen="enabled: false"
         background="color: #050811"
         renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true"
         device-orientation-permission-ui="enabled: false"
-        style={{ width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0 }}
+        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}
         onClick={handleUnmute}
       >
         <a-assets>
-          {/*
-            Video element with:
-            - muted: required for autoplay on Quest / Safari
-            - playsInline + webkit-playsinline: required for inline playback on iOS / Quest
-            - preload="auto": start buffering immediately
-            src is set via useEffect (video.src = src)
-          */}
           <video
             id="vr-video-asset"
             ref={videoRef}
@@ -213,10 +212,6 @@ export default function VRViewer({ src, onClose }) {
           />
         </a-assets>
 
-        {/*
-          src="#vr-video-asset" set directly in JSX — A-Frame handles the binding
-          as soon as the asset is ready. No dynamic setAttribute needed.
-        */}
         <a-videosphere
           id="vr-sphere"
           src="#vr-video-asset"
@@ -240,7 +235,6 @@ export default function VRViewer({ src, onClose }) {
           />
         </a-camera>
 
-        {/* Instruction text — fades out after 6 s */}
         <a-entity
           position="0 0 -3"
           geometry="primitive: plane; width: 4; height: 0.7"
@@ -253,11 +247,20 @@ export default function VRViewer({ src, onClose }) {
       <style>{`
         @keyframes vrPulse {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          50%       { opacity: 0.5; }
+        }
+        /* Force the a-scene canvas to fill its parent */
+        #vr-video-asset ~ canvas,
+        a-scene[embedded] canvas {
+          width: 100% !important;
+          height: 100% !important;
         }
       `}</style>
     </div>
   );
+
+  // Portal renders directly to document.body, bypassing all stacking contexts
+  return ReactDOM.createPortal(content, document.body);
 }
 
 /* ── Shared inline styles ─────────────────────────────────── */
