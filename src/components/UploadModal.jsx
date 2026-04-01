@@ -2,40 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
-const CLOUD_NAME    = 'dbacaeqts';
-const UPLOAD_PRESET = 'BTP-website';
-const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
-
-const ACCEPTED_EXTS = ['.mp4', '.webm', '.mov', '.mkv'];
-
-// Upload with XHR so we get real progress events
-function uploadToCloudinary(file, folder, onProgress) {
-  return new Promise((resolve, reject) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', UPLOAD_PRESET);
-    fd.append('folder', folder);
-    fd.append('resource_type', 'video');
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', UPLOAD_URL);
-
-    xhr.upload.addEventListener('progress', e => {
-      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-    });
-
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText));
-      } else {
-        reject(new Error(`Cloudinary error ${xhr.status}: ${xhr.responseText}`));
-      }
-    });
-
-    xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-    xhr.send(fd);
-  });
-}
+const ACCEPTED_EXTS = ['.mp4', '.webm', '.mov', '.mkv', '.ts', '.m2ts', '.avi'];
 
 export default function UploadModal({ onClose }) {
   const { addVideo, role } = useAuth();
@@ -45,9 +12,8 @@ export default function UploadModal({ onClose }) {
   const [cat, setCat]             = useState('training');
   const [desc, setDesc]           = useState('');
   const [filePreview, setFilePreview] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [uploadPct, setUploadPct] = useState(0);
-  const [step, setStep]           = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [loadPct, setLoadPct]     = useState(0);
   const fileRef = useRef(null);
 
   function handleFileChange() {
@@ -55,7 +21,7 @@ export default function UploadModal({ onClose }) {
     if (!file) { setFilePreview(''); return; }
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     if (!ACCEPTED_EXTS.includes(ext)) {
-      setFilePreview('❌ Only .mp4, .webm, .mov, .mkv files accepted.');
+      setFilePreview('❌ Unsupported format. Use .mp4, .webm, .mov, .mkv, .ts, .avi');
       fileRef.current.value = '';
     } else {
       setFilePreview(`✅ ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
@@ -72,34 +38,34 @@ export default function UploadModal({ onClose }) {
     if (!file) { toast('Please select a file.', 'error'); return; }
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     if (!ACCEPTED_EXTS.includes(ext)) {
-      toast('⛔ Only .mp4, .webm, .mov, .mkv files are allowed.', 'error');
+      toast('⛔ Unsupported file format.', 'error');
       return;
     }
 
-    setUploading(true);
-    setUploadPct(0);
-    setStep('Preparing secure upload…');
+    setLoading(true);
+    setLoadPct(0);
 
-    let cloudUrl;
-    try {
-      setStep('Uploading to Cloudinary CDN…');
-      const result = await uploadToCloudinary(
-        file,
-        'unity-stream',
-        pct => {
-          setUploadPct(pct);
-          setStep(`Uploading to Cloudinary CDN… ${pct}%`);
-        }
-      );
-      cloudUrl = result.secure_url;
-    } catch (err) {
-      toast(`⛔ Upload failed: ${err.message}`, 'error', 6000);
-      setUploading(false);
-      setStep('');
-      return;
-    }
+    // Read file into memory and create a session-local blob URL
+    const blobUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onprogress = e => {
+        if (e.lengthComputable) setLoadPct(Math.round((e.loaded / e.total) * 90));
+      };
+      reader.onload = () => {
+        const blob = new Blob([reader.result], { type: file.type || 'video/mp4' });
+        resolve(URL.createObjectURL(blob));
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    }).catch(err => {
+      toast(`⛔ Failed to read file: ${err.message}`, 'error', 5000);
+      setLoading(false);
+      return null;
+    });
 
-    setStep('Registering in encrypted library…');
+    if (!blobUrl) return;
+
+    setLoadPct(100);
 
     const newVideo = {
       id:         'v' + Date.now(),
@@ -110,14 +76,13 @@ export default function UploadModal({ onClose }) {
       size:       (file.size / 1024 / 1024).toFixed(1) + ' MB',
       thumb:      '/thumb1.png',
       desc:       desc.trim() || 'Encrypted VR content uploaded via Unity Stream.',
-      src:        cloudUrl,
+      src:        blobUrl,
       binFileName: file.name,
     };
 
     addVideo(newVideo);
-    toast(`✅ "${newVideo.title}" uploaded to Cloudinary & added to library.`, 'success', 5000);
-    setUploading(false);
-    setStep('');
+    toast(`✅ "${newVideo.title}" added to library.`, 'success', 4000);
+    setLoading(false);
     onClose();
   }
 
@@ -130,9 +95,9 @@ export default function UploadModal({ onClose }) {
       <div className="modal-box">
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">☁️ Upload Video to Cloud</h2>
+            <h2 className="modal-title">📤 Upload Video</h2>
             <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-              {role === 'admin' ? 'Admin' : 'Editor'} access &bull; Uploaded to Cloudinary CDN &bull; Persists across sessions
+              {role === 'admin' ? 'Admin' : 'Editor'} access &bull; Stored in session memory
             </p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -140,12 +105,12 @@ export default function UploadModal({ onClose }) {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Video File (.mp4 · .webm · .mov · .mkv)</label>
+            <label className="form-label">Video File (.mp4 · .webm · .mov · .mkv · .ts · .avi)</label>
             <input
               className="form-input"
               type="file"
               ref={fileRef}
-              accept=".mp4,.webm,.mov,.mkv"
+              accept=".mp4,.webm,.mov,.mkv,.ts,.m2ts,.avi"
               required
               onChange={handleFileChange}
             />
@@ -171,25 +136,19 @@ export default function UploadModal({ onClose }) {
             />
           </div>
 
-          <div className="form-group" style={{ display: 'flex', gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <label className="form-label">Category</label>
-              <select
-                className="form-input"
-                value={cat}
-                onChange={e => setCat(e.target.value)}
-                style={{ width: '100%' }}
-              >
-                <option value="training">Training</option>
-                <option value="experience">Experience</option>
-                <option value="simulation">Simulation</option>
-                <option value="neural">Neural</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label className="form-label">Storage</label>
-              <input className="form-input" type="text" value="Cloudinary CDN (locked)" disabled />
-            </div>
+          <div className="form-group">
+            <label className="form-label">Category</label>
+            <select
+              className="form-input"
+              value={cat}
+              onChange={e => setCat(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="training">Training</option>
+              <option value="experience">Experience</option>
+              <option value="simulation">Simulation</option>
+              <option value="neural">Neural</option>
+            </select>
           </div>
 
           <div className="form-group">
@@ -203,29 +162,18 @@ export default function UploadModal({ onClose }) {
             />
           </div>
 
-          {/* Progress / status */}
-          {uploading ? (
+          {loading && (
             <div style={{ marginBottom: 16 }}>
               <div className="warn-box" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="spinner" style={{ width: 14, height: 14, flexShrink: 0 }} />
-                <span>{step}</span>
+                <span>Loading file into memory… {loadPct}%</span>
               </div>
               <div className="progress-bar" style={{ height: 6 }}>
                 <div
                   className="progress-fill"
-                  style={{ width: `${uploadPct}%`, transition: 'width 0.3s ease' }}
+                  style={{ width: `${loadPct}%`, transition: 'width 0.3s ease' }}
                 />
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 5, textAlign: 'right' }}>
-                {uploadPct}%
-              </div>
-            </div>
-          ) : (
-            <div className="warn-box" style={{ marginBottom: 20 }}>
-              <span>
-                ☁️ Video is uploaded directly to <strong>Cloudinary CDN</strong> and added
-                permanently to the library — survives page refresh and is available to all users.
-              </span>
             </div>
           )}
 
@@ -233,10 +181,10 @@ export default function UploadModal({ onClose }) {
             type="submit"
             className="btn btn-primary"
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            disabled={uploading}
+            disabled={loading}
           >
-            {uploading && <span className="spinner" style={{ width: 16, height: 16 }} />}
-            {uploading ? 'Uploading…' : '☁️ Upload to Cloud'}
+            {loading && <span className="spinner" style={{ width: 16, height: 16 }} />}
+            {loading ? 'Loading…' : '📤 Add to Library'}
           </button>
         </form>
       </div>
