@@ -1,65 +1,144 @@
-# Unity Stream
+# Unity Stream — Secure VR Streaming Platform
 
-**Unity Stream** is an enterprise-grade, front-end-only Single Page Application (SPA) designed to simulate a highly secure VR video streaming platform. It features an immersive dashboard, on-the-fly in-browser video decryption, and 360° WebXR playback.
+**Unity Stream** is an enterprise-grade, frontend-only Single Page Application (SPA) simulating a secure VR video streaming and multi-headset management platform. Built for education, training, research, and enterprise XR use cases where controlled content delivery, multi-user synchronization, and content protection are critical.
 
-## ✨ Features
-
-- **Secure Simulated Authentication:** Role-based access (Admin, Editor, Player Dev) with session persistence using `sessionStorage`.
-- **In-Browser Decryption:** Uses the WebCrypto API (AES-256-CTR) to decrypt `.bin` and `.ts` formatted videos entirely in the browser memory before generating a secure stream.
-- **VR 360° Playback:** Integrated with **A-Frame** to render immersive, head-tracking-enabled 360° video environments right in the browser.
-- **MPEG-TS Support:** Utilizes `mpegts.js` to play decrypted `.ts` media through MediaSource Extensions.
-- **Enterprise UI/UX:** A responsive, dark-mode glassmorphic interface with interactive state animations and a simulated "Cloud/Headset" management dashboard.
-- **Content Protection:** Employs front-end anti-piracy tactics (disabling right-click context menus, blocking common screenshot/save keyboard shortcuts, and disabling drag-to-save on media).
+Live demo → **[btp-website-sage.vercel.app](https://btp-website-sage.vercel.app)**
 
 ---
 
-## 🚀 How to Run the Project
+## Project Objectives
 
-**⚠️ IMPORTANT:** This is a strictly **frontend-only web application**. It interacts with the Browser's Document Object Model (DOM). **Do not attempt to run this using Node.js** (e.g., `node app.js` will fail because Node.js doesn't have a visual window or a `document` object).
-
-### Method 1: Using a Local Web Server (Recommended)
-
-Running it via a local server ensures that fetching visual assets and performing crypto operations won't be blocked by your browser's CORS (Cross-Origin) security policies.
-
-1. Open your terminal.
-2. Navigate to the project folder:
-   ```bash
-   cd "/Users/your-device-name/Desktop/Unity website"
-   ```
-3. Start a built-in Python HTTP server:
-   ```bash
-   python3 -m http.server 8000
-   ```
-4. Open your web browser and go to: **[http://localhost:8000](http://localhost:8000)**
-
-### Method 2: Opening Directly
-
-You can also simply open the project natively in your browser:
-
-1. Open your File Explorer / Finder.
-2. Navigate to the `Unity website` folder.
-3. Double-click on `index.html` to open it in Chrome, Safari, Edge, or Firefox.
+1. Design a VR controller system that connects, monitors, and controls multiple VR headsets concurrently
+2. Develop a custom VR media player capable of playing encrypted VR video files
+3. Ensure secure content delivery — preventing unauthorized access, copying, or screen capture
+4. Enable synchronized playback across multiple VR devices
+5. Support scalable deployment for labs, classrooms, and training centers
 
 ---
 
-## 🔑 Demo Login Credentials
+## Features
 
-You can log in to the dashboard using any of the following demo user combinations:
-
-| Role           | User ID        | Password     | Notes                                                                    |
-| :------------- | :------------- | :----------- | :----------------------------------------------------------------------- |
-| **Admin**      | `admin_01`     | `unity@2025` | Has exclusive access to upload new `.bin`/`.ts` keys directly to memory. |
-| **Editor**     | `editor_01`    | `unity@2025` | Standard viewer access.                                                  |
-| **Player Dev** | `playerdev_01` | `unity@2025` | Standard viewer access.                                                  |
+- **AES-256-CTR In-Browser Decryption** — Videos stored as encrypted `.bin` files are fetched, decrypted using the WebCrypto API entirely in memory, and streamed as blob URLs — nothing is ever written to disk
+- **360° WebXR VR Playback** — Powered by A-Frame 1.5.0; renders equirectangular 360° video on a sphere with head-tracking, mouse-drag, and full Meta Quest browser support
+- **Multi-Headset Management** — Scan, register, and release VR headsets via Web Bluetooth or WebXR; exclusive session lock prevents two users from claiming the same headset simultaneously
+- **Synchronized Broadcast** — When a video plays with registered headsets, a live broadcast panel shows each headset transitioning from Buffering → Streaming
+- **Role-Based Access Control** — Admin, Editor, and Player Dev roles with session persistence via `sessionStorage`
+- **Admin Video Upload** — Admin/Editor users can upload any video format (MP4, MKV, MOV, WEBM, TS, AVI); the file is read locally and added to the session library instantly
+- **Content Protection** — Right-click disabled, screenshot shortcuts blocked, download controls removed, drag-to-save disabled on all media
+- **Video Encryptor Utility** — Standalone `encrypt-video.html` tool to encrypt any video file into an AES-256-CTR `.bin` ready for the player
 
 ---
 
-## 🛠️ Technology Stack
+## Tech Stack
 
-- **HTML5** (`index.html`)
-- **Vanilla CSS** (Split thoughtfully into `app.css`, `login.css`, and `style.css`)
-- **Vanilla JavaScript** (`js/app.js`)
-- **A-Frame (v1.5.0):** For the WebXR VR viewer.
-- **mpegts.js (v1.7.3):** For handling the `.ts` playback.
+| Layer | Technology |
+|---|---|
+| Framework | React 18.3 + Vite 6.0 |
+| Routing | React Router 6.27 |
+| Animations | Framer Motion 12.38 |
+| VR / WebXR | A-Frame 1.5.0 |
+| Encryption | WebCrypto API — AES-256-CTR |
+| Headset Scan | Web Bluetooth API + WebXR API |
+| Deployment | Vercel (auto-deploy from GitHub) |
 
-No heavy frameworks (like React or Angular) or backend servers are required to run this simulated demo.
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+
+### Install & Run
+
+```bash
+git clone https://github.com/kumarswamyg2005/BTP-website-.git
+cd BTP-website-
+npm install
+npm run dev
+```
+
+Open **[http://localhost:5173](http://localhost:5173)**
+
+> To test from a Meta Quest on the same WiFi, use your machine's LAN IP instead of localhost — Vite is configured with `host: true` so it's reachable at `http://192.168.x.x:5173`
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+---
+
+## Demo Login Credentials
+
+| Role | Username | Password | Access |
+|---|---|---|---|
+| **Admin** | `admin_01` | `unity@2025` | Full access — upload videos, manage headsets, view all content |
+| **Editor** | `editor_01` | `unity@2025` | Upload videos, view library |
+| **Player Dev** | `playerdev_01` | `unity@2025` | View library only |
+
+---
+
+## Using on Meta Quest
+
+1. Open the Vercel URL in the **Meta Quest Browser**
+2. Go to **Headsets** — your Quest is auto-detected, click Register
+3. Go to **Library** → click a video → **Decrypt & Play**
+4. Click **View in 360° VR** → tap **Tap to Unmute** for audio
+5. Press **[⊙]** (bottom-right of screen) to enter full headset VR mode
+
+---
+
+## Admin: Adding Encrypted Videos
+
+Use the included **`encrypt-video.html`** utility (open directly in any browser — no server needed):
+
+1. Drop your video file (MP4, MKV, MOV, WEBM, etc.)
+2. Click **Encrypt & Download .bin** — outputs `yourfile_encrypted.bin`
+3. Place the `.bin` file in the `assets/` folder
+4. Copy the generated code snippet into `src/data/videos.js`
+5. Run `npm run dev` — the video appears in the library and decrypts on play
+
+---
+
+## Project Structure
+
+```
+├── assets/                  # Static files served by Vite (videos, thumbs, .bin files)
+├── src/
+│   ├── components/
+│   │   ├── VRViewer.jsx     # A-Frame 360° WebXR player (portal-rendered, Quest-compatible)
+│   │   ├── VideoModal.jsx   # Decrypt & play modal with sync broadcast panel
+│   │   ├── UploadModal.jsx  # Admin video upload (local FileReader → blob URL)
+│   │   └── Navbar.jsx
+│   ├── pages/
+│   │   ├── HomePage.jsx     # Video library with search, filter, spotlight cards
+│   │   ├── HeadsetsPage.jsx # Headset scan, register, release, active management
+│   │   ├── CloudPage.jsx
+│   │   └── AdminPage.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx  # Auth, headset state, video library, session persistence
+│   └── data/
+│       └── videos.js        # Demo video catalogue
+├── encrypt-video.html       # Standalone AES-256-CTR video encryptor utility
+├── vercel.json              # SPA routing rewrite rule for Vercel
+└── vite.config.js
+```
+
+---
+
+## Security Design
+
+- Videos are never stored in plaintext — they exist as `.bin` blobs on the server
+- Decryption happens entirely in the browser using the WebCrypto API
+- Blob URLs are revoked on modal close — no persistent plaintext in memory
+- `fileData` ArrayBuffers are stripped before `sessionStorage` serialization
+- No backend, no database — zero server-side attack surface
+
+---
+
+## Deployment
+
+The project is deployed on **Vercel** with automatic redeployment on every push to `main`.
+
+See [DEPLOY.md](DEPLOY.md) for full deployment instructions.
