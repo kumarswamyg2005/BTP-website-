@@ -30,7 +30,15 @@ function persistToSession(uid, userData, headsets, active, videos) {
   sessionStorage.setItem('unity_user_data', JSON.stringify(userData));
   sessionStorage.setItem('unity_headsets', JSON.stringify(headsets));
   sessionStorage.setItem('unity_active', JSON.stringify(active));
-  sessionStorage.setItem('unity_videos', JSON.stringify(videos));
+  // Strip ArrayBuffer fileData — not JSON-serializable; blob URL is reconstructed on play
+  const serializableVideos = videos.map(v => {
+    if (v.fileData) {
+      const { fileData, ...rest } = v;
+      return rest;
+    }
+    return v;
+  });
+  sessionStorage.setItem('unity_videos', JSON.stringify(serializableVideos));
 }
 
 export function AuthProvider({ children }) {

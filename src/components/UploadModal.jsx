@@ -2,41 +2,52 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
+const CLOUD_NAME    = 'dbacaeqts';
+const UPLOAD_PRESET = 'BTP-website';
+const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
 
 const ACCEPTED_EXTS = ['.mp4', '.webm', '.mov', '.mkv'];
-const MIME_MAP = {
-  '.mp4': 'video/mp4',
-  '.webm': 'video/webm',
-  '.mov': 'video/mp4',
-  '.mkv': 'video/x-matroska',
-};
 
-// AES-256-CTR encrypt (same key/counter as VideoModal decrypt — CTR is symmetric)
-async function encryptVideoFile(arrayBuffer) {
-  const KEY_HEX = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
-  const keyBytes = new Uint8Array(KEY_HEX.match(/.{2}/g).map(b => parseInt(b, 16)));
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', keyBytes, { name: 'AES-CTR' }, false, ['encrypt']
-  );
-  return crypto.subtle.encrypt(
-    { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
-    cryptoKey, arrayBuffer
-  );
+// Upload with XHR so we get real progress events
+function uploadToCloudinary(file, folder, onProgress) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', UPLOAD_PRESET);
+    fd.append('folder', folder);
+    fd.append('resource_type', 'video');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', UPLOAD_URL);
+
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        reject(new Error(`Cloudinary error ${xhr.status}: ${xhr.responseText}`));
+      }
+    });
+
+    xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+    xhr.send(fd);
+  });
 }
 
 export default function UploadModal({ onClose }) {
   const { addVideo, role } = useAuth();
   const toast = useToast();
 
-  const [title, setTitle] = useState('');
-  const [cat, setCat] = useState('training');
-  const [desc, setDesc] = useState('');
+  const [title, setTitle]         = useState('');
+  const [cat, setCat]             = useState('training');
+  const [desc, setDesc]           = useState('');
   const [filePreview, setFilePreview] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [encryptStep, setEncryptStep] = useState('');
+  const [uploadPct, setUploadPct] = useState(0);
+  const [step, setStep]           = useState('');
   const fileRef = useRef(null);
 
   function handleFileChange() {
@@ -66,47 +77,47 @@ export default function UploadModal({ onClose }) {
     }
 
     setUploading(true);
-    setEncryptStep('Reading video into memory…');
-    const rawBuffer = await file.arrayBuffer();
+    setUploadPct(0);
+    setStep('Preparing secure upload…');
 
-    await sleep(400);
-    setEncryptStep('Generating AES-256-CTR keystream…');
-    await sleep(700);
-    setEncryptStep('Encrypting with WebCrypto API…');
-
-    let encryptedData;
+    let cloudUrl;
     try {
-      encryptedData = await encryptVideoFile(rawBuffer);
-    } catch {
-      toast('⛔ Encryption failed.', 'error');
+      setStep('Uploading to Cloudinary CDN…');
+      const result = await uploadToCloudinary(
+        file,
+        'unity-stream',
+        pct => {
+          setUploadPct(pct);
+          setStep(`Uploading to Cloudinary CDN… ${pct}%`);
+        }
+      );
+      cloudUrl = result.secure_url;
+    } catch (err) {
+      toast(`⛔ Upload failed: ${err.message}`, 'error', 6000);
       setUploading(false);
-      setEncryptStep('');
+      setStep('');
       return;
     }
 
-    await sleep(500);
-    setEncryptStep('Storing ciphertext in session memory…');
-    await sleep(400);
+    setStep('Registering in encrypted library…');
 
     const newVideo = {
-      id: 'v' + Date.now(),
-      title: title.trim() || 'Untitled',
-      category: cat,
-      duration: 'Classified',
+      id:         'v' + Date.now(),
+      title:      title.trim() || file.name.replace(/\.[^.]+$/, ''),
+      category:   cat,
+      duration:   'Classified',
       resolution: 'Encrypted',
-      size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
-      thumb: '/thumb1.png',
-      desc: desc.trim() || 'Encrypted VR content.',
-      encryptedBin: true,
-      originalExt: ext,
-      originalMime: MIME_MAP[ext] || 'video/mp4',
-      fileData: encryptedData,
+      size:       (file.size / 1024 / 1024).toFixed(1) + ' MB',
+      thumb:      '/thumb1.png',
+      desc:       desc.trim() || 'Encrypted VR content uploaded via Unity Stream.',
+      src:        cloudUrl,
+      binFileName: file.name,
     };
 
     addVideo(newVideo);
-    toast(`✅ "${newVideo.title}" encrypted & secured.`, 'success');
+    toast(`✅ "${newVideo.title}" uploaded to Cloudinary & added to library.`, 'success', 5000);
     setUploading(false);
-    setEncryptStep('');
+    setStep('');
     onClose();
   }
 
@@ -119,9 +130,9 @@ export default function UploadModal({ onClose }) {
       <div className="modal-box">
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">🔐 Upload & Encrypt Video</h2>
+            <h2 className="modal-title">☁️ Upload Video to Cloud</h2>
             <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-              {role === 'admin' ? 'Admin' : 'Editor'} access &bull; Video encrypted in-browser before storage
+              {role === 'admin' ? 'Admin' : 'Editor'} access &bull; Uploaded to Cloudinary CDN &bull; Persists across sessions
             </p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -139,14 +150,10 @@ export default function UploadModal({ onClose }) {
               onChange={handleFileChange}
             />
             {filePreview && (
-              <span
-                style={{
-                  fontSize: '0.83rem',
-                  marginTop: 6,
-                  display: 'block',
-                  color: filePreview.startsWith('❌') ? 'var(--danger)' : 'var(--success)',
-                }}
-              >
+              <span style={{
+                fontSize: '0.83rem', marginTop: 6, display: 'block',
+                color: filePreview.startsWith('❌') ? 'var(--danger)' : 'var(--success)',
+              }}>
                 {filePreview}
               </span>
             )}
@@ -180,8 +187,8 @@ export default function UploadModal({ onClose }) {
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label className="form-label">Encryption</label>
-              <input className="form-input" type="text" value="AES-256-CTR (locked)" disabled />
+              <label className="form-label">Storage</label>
+              <input className="form-input" type="text" value="Cloudinary CDN (locked)" disabled />
             </div>
           </div>
 
@@ -196,16 +203,28 @@ export default function UploadModal({ onClose }) {
             />
           </div>
 
-          {encryptStep ? (
-            <div className="warn-box" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="spinner" style={{ width: 14, height: 14, flexShrink: 0 }} />
-              <span>{encryptStep}</span>
+          {/* Progress / status */}
+          {uploading ? (
+            <div style={{ marginBottom: 16 }}>
+              <div className="warn-box" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="spinner" style={{ width: 14, height: 14, flexShrink: 0 }} />
+                <span>{step}</span>
+              </div>
+              <div className="progress-bar" style={{ height: 6 }}>
+                <div
+                  className="progress-fill"
+                  style={{ width: `${uploadPct}%`, transition: 'width 0.3s ease' }}
+                />
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 5, textAlign: 'right' }}>
+                {uploadPct}%
+              </div>
             </div>
           ) : (
             <div className="warn-box" style={{ marginBottom: 20 }}>
               <span>
-                🔐 Video is encrypted with AES-256-CTR inside your browser before being stored.
-                Raw bytes never leave your device unencrypted and are never written to disk.
+                ☁️ Video is uploaded directly to <strong>Cloudinary CDN</strong> and added
+                permanently to the library — survives page refresh and is available to all users.
               </span>
             </div>
           )}
@@ -217,7 +236,7 @@ export default function UploadModal({ onClose }) {
             disabled={uploading}
           >
             {uploading && <span className="spinner" style={{ width: 16, height: 16 }} />}
-            {uploading ? 'Encrypting…' : '🔐 Encrypt & Upload'}
+            {uploading ? 'Uploading…' : '☁️ Upload to Cloud'}
           </button>
         </form>
       </div>

@@ -1,16 +1,27 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import PageTransition from '../components/PageTransition.jsx';
 
-const MOCK_HEADSETS = [
-  {
-    id: 'HS-CC7A-4F02',
-    model: 'Unity VR Headset (Simulated)',
-    type: 'WebXR',
-    signal: 100,
-  },
-];
+const MOCK_HEADSET = {
+  id: 'HS-CC7A-4F02',
+  model: 'Unity VR Headset (Simulated)',
+  type: 'Simulated',
+  signal: 100,
+  real: false,
+};
+
+// Detect if running inside a Meta Quest / Oculus browser
+function detectQuestBrowser() {
+  const ua = navigator.userAgent || '';
+  if (/OculusBrowser/i.test(ua)) return 'Meta Quest (Oculus Browser)';
+  if (/Quest/i.test(ua))         return 'Meta Quest Browser';
+  if (/PicoVR/i.test(ua))        return 'Pico VR Browser';
+  return null;
+}
+
+// True if browser supports Web Bluetooth
+const hasBluetooth = typeof navigator !== 'undefined' && 'bluetooth' in navigator;
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
@@ -20,11 +31,34 @@ export default function HeadsetsPage() {
   const { registeredHeadsets, activeHeadset, registerHeadset, releaseHeadset, setActiveHeadset } = useAuth();
   const toast = useToast();
 
-  const [scanning, setScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanMsg, setScanMsg] = useState('Scanning network for nearby VR headsets…');
-  const [showProgress, setShowProgress] = useState(false);
+  const [scanning, setScanning]           = useState(false);
+  const [scanProgress, setScanProgress]   = useState(0);
+  const [scanMsg, setScanMsg]             = useState('');
+  const [showProgress, setShowProgress]   = useState(false);
   const [discoveredDevices, setDiscoveredDevices] = useState([]);
+  const [appUrl, setAppUrl]               = useState('');
+
+  // Build the local URL once (so user can open it on the Quest browser)
+  useEffect(() => {
+    setAppUrl(window.location.origin + window.location.pathname);
+
+    // If already running inside a Quest browser, auto-add it as a real device
+    const questModel = detectQuestBrowser();
+    if (questModel) {
+      const alreadyReg = registeredHeadsets.find(h => h.type === 'WebXR (Quest)');
+      if (!alreadyReg) {
+        const device = {
+          id: `QUEST-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          model: questModel,
+          type: 'WebXR (Quest)',
+          signal: 100,
+          real: true,
+        };
+        setDiscoveredDevices([device]);
+        toast('🥽 Meta Quest browser detected! Register your headset below.', 'success', 7000);
+      }
+    }
+  }, []);
 
   const startScan = useCallback(async () => {
     if (scanning) return;
@@ -33,42 +67,115 @@ export default function HeadsetsPage() {
     setScanProgress(0);
     setDiscoveredDevices([]);
 
-    const messages = [
-      'Initializing WebXR protocol scan…',
-      'Broadcasting device discovery packets…',
-      'Probing physical VR hardware bus…',
-      'Evaluating navigator.xr session support…',
-      'Finalizing available device list…',
-    ];
+    const messages = hasBluetooth
+      ? [
+          'Initializing Bluetooth scan…',
+          'Broadcasting BT discovery packets…',
+          'Opening device picker — select your headset…',
+          'Evaluating WebXR session support…',
+          'Finalizing device list…',
+        ]
+      : [
+          'Initializing WebXR protocol scan…',
+          'Probing VR hardware bus…',
+          'Evaluating navigator.xr session support…',
+          'Checking for Quest browser session…',
+          'Finalizing available device list…',
+        ];
 
     let msgIdx = 0;
-    for (let i = 0; i <= 100; i += 2) {
+    for (let i = 0; i <= 60; i += 2) {
       setScanProgress(i);
-      if (i % 20 === 0 && msgIdx < messages.length) {
-        setScanMsg(messages[msgIdx++]);
-      }
+      if (i % 20 === 0 && msgIdx < messages.length) setScanMsg(messages[msgIdx++]);
       await sleep(28);
     }
 
-    let xrSupported = false;
-    if ('xr' in navigator) {
-      try { xrSupported = await navigator.xr.isSessionSupported('immersive-vr'); } catch {}
+    // ── 1. Try Web Bluetooth (Chrome/Edge on Mac/Windows) ──────────────
+    let foundReal = false;
+    if (hasBluetooth) {
+      setScanMsg('Opening Bluetooth device picker…');
+      try {
+        const btDevice = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [],
+        });
+
+        if (btDevice) {
+          const name = btDevice.name || 'Unknown BT Device';
+          const isVR = /quest|meta|oculus|vive|valve index|pico|htc|reverb/i.test(name);
+          const device = {
+            id: `BT-${(btDevice.id || Math.random().toString(36).slice(2, 8)).toUpperCase().slice(0, 8)}`,
+            model: name,
+            type: isVR ? 'Bluetooth VR' : 'Bluetooth',
+            signal: 90,
+            real: true,
+          };
+          const alreadyReg = registeredHeadsets.find(r => r.id === device.id);
+          if (!alreadyReg) {
+            setDiscoveredDevices([device]);
+            toast(`🎯 Found: ${name}${isVR ? ' — VR headset detected!' : ''}`, 'success', 6000);
+            foundReal = true;
+          } else {
+            toast('This device is already registered.', 'info');
+          }
+        }
+      } catch (err) {
+        // User cancelled picker or BT unavailable — fall through silently
+        if (err.name !== 'NotFoundError' && err.name !== 'AbortError') {
+          toast('Bluetooth scan failed. Falling back to WebXR check.', 'info', 3000);
+        }
+      }
     }
 
-    const available = MOCK_HEADSETS.filter(
-      h => !registeredHeadsets.find(r => r.id === h.id)
-    );
+    // ── 2. Try WebXR (works natively inside Quest browser) ────────────
+    if (!foundReal) {
+      setScanMsg('Checking WebXR session support…');
+      let xrSupported = false;
+      if ('xr' in navigator) {
+        try { xrSupported = await navigator.xr.isSessionSupported('immersive-vr'); } catch {}
+      }
 
-    setDiscoveredDevices(available);
+      for (let i = 60; i <= 100; i += 2) {
+        setScanProgress(i);
+        await sleep(20);
+      }
+
+      if (xrSupported) {
+        const questModel = detectQuestBrowser() || 'WebXR Headset';
+        const device = {
+          id: `XR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          model: questModel,
+          type: 'WebXR',
+          signal: 100,
+          real: true,
+        };
+        const alreadyReg = registeredHeadsets.find(r => r.type === 'WebXR');
+        if (!alreadyReg) {
+          setDiscoveredDevices([device]);
+          toast('🥽 WebXR headset detected!', 'success', 5000);
+          foundReal = true;
+        } else {
+          toast('WebXR headset already registered.', 'info');
+        }
+      }
+    }
+
+    // ── 3. Fall back to simulated ─────────────────────────────────────
+    if (!foundReal) {
+      for (let i = 60; i <= 100; i += 2) {
+        setScanProgress(i);
+        await sleep(20);
+      }
+      const alreadyReg = registeredHeadsets.find(r => r.id === MOCK_HEADSET.id);
+      if (!alreadyReg) {
+        setDiscoveredDevices([MOCK_HEADSET]);
+        toast('No physical headset found. Simulated device added for testing.', 'info', 5000);
+      } else {
+        toast('All headsets already registered.', 'info');
+      }
+    }
+
     setScanning(false);
-
-    if (xrSupported && available.length > 0) {
-      toast(`🥽 Found ${available.length} physical VR headset(s).`, 'success');
-    } else if (available.length > 0) {
-      toast('⚠️ No physical headset detected. Simulated headset added for testing.', 'info', 5000);
-    } else {
-      toast('All headsets already registered.', 'info');
-    }
   }, [scanning, registeredHeadsets, toast]);
 
   function handleRegister(deviceId) {
@@ -85,7 +192,7 @@ export default function HeadsetsPage() {
     releaseHeadset(deviceId);
     // add back to discovered if not already there
     if (!discoveredDevices.find(h => h.id === deviceId)) {
-      const mock = MOCK_HEADSETS.find(h => h.id === deviceId);
+      const mock = MOCK_HEADSET.id === deviceId ? MOCK_HEADSET : null;
       if (mock) setDiscoveredDevices(prev => [...prev, mock]);
     }
     toast(`🔓 ${hset.model} released.`, 'info');
@@ -223,8 +330,42 @@ export default function HeadsetsPage() {
           )}
         </div>
 
+        {/* Quest / Mac connection guide */}
+        <div className="info-box glass" style={{ marginTop: 36, flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="info-box-icon">📱</div>
+            <strong style={{ fontSize: '1rem' }}>Connecting a Meta Quest on Mac?</strong>
+          </div>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            Meta dropped Mac support for Quest Link (USB/Air Link). The easiest alternatives:
+          </p>
+          <ol style={{ margin: 0, paddingLeft: 20, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 2 }}>
+            <li>
+              <strong style={{ color: 'var(--text-primary)' }}>Open this URL inside your Quest browser</strong> — WebXR
+              works natively and the headset auto-registers:
+              <div style={{
+                marginTop: 6, padding: '8px 14px',
+                background: 'rgba(79,142,247,0.08)', border: '1px solid rgba(79,142,247,0.3)',
+                borderRadius: 8, fontFamily: 'JetBrains Mono, monospace',
+                fontSize: '0.82rem', color: '#4f8ef7',
+                wordBreak: 'break-all', userSelect: 'text',
+              }}>
+                {appUrl || window.location.origin}
+              </div>
+            </li>
+            <li>
+              <strong style={{ color: 'var(--text-primary)' }}>Bluetooth scan (Chrome/Edge on Mac)</strong> — click
+              "Start Scan", pick your Quest from the browser's Bluetooth picker.
+            </li>
+            <li>
+              <strong style={{ color: 'var(--text-primary)' }}>ALVR / Virtual Desktop</strong> — stream SteamVR
+              wirelessly to your Quest; then plug into any WebXR-compatible browser.
+            </li>
+          </ol>
+        </div>
+
         {/* Exclusivity info */}
-        <div className="info-box glass" style={{ marginTop: 36 }}>
+        <div className="info-box glass" style={{ marginTop: 16 }}>
           <div className="info-box-icon">🔒</div>
           <div>
             <strong>Exclusive Headset Lock</strong>

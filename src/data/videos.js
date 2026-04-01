@@ -1,10 +1,25 @@
 /* ================================================================
    Unity Stream — Video Library
-   Add `src` to point to a real equirectangular 360° video file.
-   The three local files cycle across the 6 entries.
+   Demo videos use Cloudinary CDN URLs (deployed) with local
+   asset fallbacks (dev). Upload the 3 MP4s to Cloudinary under
+   the unity-stream/ folder to activate CDN URLs.
 ================================================================ */
 
+const CDN = 'https://res.cloudinary.com/dbacaeqts/video/upload/unity-stream';
+
 export const VIDEOS = [
+  {
+    id: 'v0',
+    title: 'Cable Car VR Experience',
+    category: 'experience',
+    duration: 'Classified',
+    resolution: '8K VR',
+    size: '1.0 GB',
+    thumb: '/thumb1.png',
+    binSrc: '/cable_car_encrypted.bin',
+    binMime: 'video/mp4',
+    desc: 'An immersive 360° cable car journey. AES-256-CTR encrypted — decrypted and rendered in real-time by the Unity Player.',
+  },
   {
     id: 'v1',
     title: 'Encrypted Training Module Alpha',
@@ -13,7 +28,8 @@ export const VIDEOS = [
     resolution: '8K VR',
     size: '14.2 GB',
     thumb: '/thumb1.png',
-    src: '/vr_4k_hq.mp4',          // ← real 360° equirectangular video
+    src: `${CDN}/vr_4k.mp4`,
+    srcFallback: '/vr_4k.mp4',
     desc: 'Advanced tactical VR training simulation with encrypted environment data. Used by ARDS field operatives for mission preparation.',
   },
   {
@@ -24,7 +40,8 @@ export const VIDEOS = [
     resolution: '6K VR',
     size: '9.8 GB',
     thumb: '/thumb2.png',
-    src: '/vr_4k.mp4',
+    src: `${CDN}/vr_4k.mp4`,
+    srcFallback: '/vr_4k.mp4',
     desc: 'An immersive journey through a photorealistic deep-space wormhole. Fully encrypted stream — real-time decryption via Unity Player.',
   },
   {
@@ -35,7 +52,8 @@ export const VIDEOS = [
     resolution: '4K VR',
     size: '6.5 GB',
     thumb: '/thumb3.png',
-    src: '/vr_video.mp4',
+    src: `${CDN}/vr_video.mp4`,
+    srcFallback: '/vr_video.mp4',
     desc: 'Binary matrix data stream visualization for cybersecurity analysis sessions. AES-256 encrypted .bin file with live decryption pipeline.',
   },
   {
@@ -46,7 +64,8 @@ export const VIDEOS = [
     resolution: '8K VR',
     size: '18.4 GB',
     thumb: '/thumb4.png',
-    src: '/vr_4k_hq.mp4',
+    src: `${CDN}/vr_4k.mp4`,
+    srcFallback: '/vr_4k.mp4',
     desc: 'Real-time holographic threat intelligence map covering global network nodes. Classified encrypted stream with session-bound decryption.',
   },
   {
@@ -57,7 +76,8 @@ export const VIDEOS = [
     resolution: '8K VR',
     size: '22.1 GB',
     thumb: '/thumb5.png',
-    src: '/vr_4k.mp4',
+    src: `${CDN}/vr_4k.mp4`,
+    srcFallback: '/vr_4k.mp4',
     desc: 'Crystal-covered alien landscapes with aurora-lit skies. Encoded with next-gen VR encryption for an ultra-immersive experience.',
   },
   {
@@ -68,7 +88,8 @@ export const VIDEOS = [
     resolution: '4K VR',
     size: '4.9 GB',
     thumb: '/thumb6.png',
-    src: '/vr_video.mp4',
+    src: `${CDN}/vr_video.mp4`,
+    srcFallback: '/vr_video.mp4',
     desc: 'Precise neural interface calibration protocol in VR. Required for ARDS VR headset synchronization. Encrypted and session-locked.',
   },
 ];

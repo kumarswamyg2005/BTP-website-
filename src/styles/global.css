@@ -124,7 +124,7 @@ ul {
 .bg-animated {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   background:
     radial-gradient(ellipse 70% 50% at 15% 0%, rgba(79, 142, 247, 0.08) 0%, transparent 55%),
@@ -257,18 +257,18 @@ ul {
 }
 
 .btn-outline {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
-  border-color: var(--border);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 .btn-outline:hover:not(:disabled) {
   background: var(--bg-elevated);
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   border-color: transparent;
 }
 .btn-ghost:hover:not(:disabled) {

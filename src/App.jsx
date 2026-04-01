@@ -30,35 +30,35 @@ export default function App() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+          <Route
+          path="/login"
+          element={isLoggedIn ? <Navigate to="/home" replace /> : <LoginPage />}
+        />
         <Route
-        path="/login"
-        element={isLoggedIn ? <Navigate to="/home" replace /> : <LoginPage />}
-      />
-      <Route
-        path="/"
-        element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/headsets" element={<HeadsetsPage />} />
-        <Route path="/cloud" element={<CloudPage />} />
+          path="/"
+          element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />}
+        />
         <Route
-          path="/admin"
           element={
-            <ProtectedRoute adminOnly>
-              <AdminPage />
+            <ProtectedRoute>
+              <Layout />
             </ProtectedRoute>
           }
-        />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        >
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/headsets" element={<HeadsetsPage />} />
+          <Route path="/cloud" element={<CloudPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AnimatePresence>
   );
 }

@@ -11,49 +11,43 @@ export default function SpotlightCard({ children, className = '', onClick, style
     mouseY.set(clientY - top);
   }
 
+  const spotlightBg = useMotionTemplate`radial-gradient(
+    500px circle at ${mouseX}px ${mouseY}px,
+    rgba(79, 142, 247, 0.13),
+    transparent 70%
+  )`;
+
   return (
     <motion.div
       className={`spotlight-card ${className}`}
       onMouseMove={handleMouseMove}
       onClick={onClick}
-      whileHover="hover"
-      initial="initial"
-      variants={{
-        initial: { scale: 1, y: 0 },
-        hover: { scale: 1.02, y: -4 }
-      }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      style={{
-        position: 'relative',
-        ...style
-      }}
+      whileHover={{ scale: 1.02, y: -5 }}
+      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
+      style={{ position: 'relative', ...style }}
     >
+      {/* Spotlight overlay — on top so it shows through card content */}
       <motion.div
-        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
         style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(79, 142, 247, 0.15),
-              transparent 80%
-            )
-          `,
-          zIndex: 1,
+          background: spotlightBg,
           position: 'absolute',
           inset: 0,
           borderRadius: 'inherit',
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          zIndex: 3,
+          mixBlendMode: 'screen',
         }}
         initial={{ opacity: 0 }}
         whileHover={{ opacity: 1 }}
+        transition={{ duration: 0.12 }}
       />
+      {/* Content — no background here; background comes from className CSS */}
       <div style={{
         position: 'relative',
-        zIndex: 2,
+        zIndex: 1,
         height: '100%',
-        background: 'var(--bg-card)',
         borderRadius: 'inherit',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}>
         {children}
       </div>

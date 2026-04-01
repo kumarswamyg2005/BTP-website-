@@ -80,7 +80,7 @@ export default function VRViewer({ src, onClose }) {
       scene.removeEventListener('enter-vr', onEnterVR);
       scene.removeEventListener('exit-vr',  onExitVR);
     };
-  }, [src]);
+  }, [src, toast]);
 
   function handleClose() {
     closedRef.current = true;
@@ -187,8 +187,8 @@ export default function VRViewer({ src, onClose }) {
           {/* Single video asset — ref'd by useEffect, id matched by sphere setAttribute */}
           <video
             id="vr-video-asset"
-            crossOrigin="anonymous"
             playsInline
+            preload="auto"
             ref={videoRef}
           />
         </a-assets>

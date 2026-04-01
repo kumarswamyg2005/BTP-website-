@@ -59,21 +59,25 @@
   padding: 8px 20px;
   border-radius: var(--radius-xl);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-weight: 600;
   font-size: 0.9rem;
   transition: var(--transition);
   cursor: pointer;
   border: 1px solid transparent;
+  opacity: 0.65;
 }
 .nav-tab:hover {
   background: var(--cyan-dim);
   color: var(--text-primary);
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 .nav-tab.active {
   background: var(--cyan-dim);
   color: var(--cyan);
   border-color: rgba(0, 212, 255, 0.2);
+  opacity: 1;
 }
 
 .navbar-right {
@@ -181,7 +185,7 @@
   padding: 9px 10px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 0.88rem;
   font-weight: 500;
   border-radius: var(--radius-sm);
@@ -203,7 +207,8 @@
 }
 .tab-content.active {
   display: block;
-  animation: fadeIn 0.35s ease;
+  position: relative;
+  z-index: 1;
 }
 
 /* Section descriptions */
@@ -330,35 +335,19 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
   position: relative;
   animation: fadeInUp 0.5s ease both;
-  transform-style: preserve-3d;
-  will-change: transform, box-shadow;
-}
-.video-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.06),
-    transparent 40%
-  );
-  opacity: 0;
-  transition: opacity 0.5s;
-  pointer-events: none;
-  z-index: 2;
-}
-.video-card:hover::before {
-  opacity: 1;
+  will-change: transform;
 }
 .video-card:hover {
-  transform: translateY(-8px) scale(1.02);
   border-color: var(--border-bright);
   box-shadow:
-    0 15px 35px rgba(0, 0, 0, 0.5),
-    0 0 25px rgba(0, 212, 255, 0.15);
+    0 12px 30px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(0, 212, 255, 0.12);
   background: var(--bg-card-hover);
 }
 .video-thumb-wrap {
@@ -370,10 +359,10 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.22s ease;
 }
 .video-card:hover .video-thumb {
-  transform: scale(1.07);
+  transform: scale(1.05);
 }
 .video-lock-badge {
   position: absolute;
@@ -394,29 +383,29 @@
 .video-play-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(5, 8, 17, 0.55);
+  background: rgba(5, 8, 17, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.16s ease;
 }
 .video-card:hover .video-play-overlay {
   opacity: 1;
 }
 .play-btn-circle {
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: rgba(0, 212, 255, 0.2);
+  background: rgba(0, 212, 255, 0.18);
   border: 2px solid var(--cyan);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.3rem;
-  backdrop-filter: blur(6px);
-  transform: scale(0.8);
-  transition: transform 0.3s ease;
+  backdrop-filter: blur(4px);
+  transform: scale(0.82);
+  transition: transform 0.16s ease;
 }
 .video-card:hover .play-btn-circle {
   transform: scale(1);
@@ -1024,9 +1013,8 @@
     font-size: 0.88rem;
   }
 
-  /* Video cards — no hover lift (no hover in VR), use solid focus instead */
+  /* Video cards — no hover lift in VR (no fine pointer), keep border change only */
   .video-card:hover {
-    transform: none;
     box-shadow: var(--shadow-card);
   }
 

@@ -122,7 +122,7 @@ export default function VideoModal({ video, onClose }) {
     let src;
 
     if (video.fileData) {
-      // Uploaded encrypted file — run WebCrypto decrypt
+      // Case 1: admin-uploaded file — already in memory as encrypted ArrayBuffer
       setBtnLabel('Running WebCrypto AES-256-CTR…');
       try {
         const decrypted = await decryptBinFile(video.fileData);
@@ -138,9 +138,50 @@ export default function VideoModal({ video, onClose }) {
         toast('Decryption failed. File may be corrupt.', 'error');
         return;
       }
+    } else if (video.binSrc) {
+      // Case 2: static .bin asset on the server — fetch, decrypt, blob
+      setBtnLabel('Fetching encrypted asset…');
+      try {
+        const resp = await fetch(video.binSrc);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const totalBytes = Number(resp.headers.get('content-length') || 0);
+        // Stream into buffer with progress if Content-Length is known
+        let arrayBuffer;
+        if (totalBytes > 0 && resp.body) {
+          const reader = resp.body.getReader();
+          const chunks = [];
+          let received = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.byteLength;
+            const pct = Math.round((received / totalBytes) * 100);
+            setBtnLabel(`Downloading encrypted file… ${pct}%`);
+          }
+          const merged = new Uint8Array(received);
+          let offset = 0;
+          for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
+          arrayBuffer = merged.buffer;
+        } else {
+          arrayBuffer = await resp.arrayBuffer();
+        }
+        setBtnLabel('Running WebCrypto AES-256-CTR…');
+        const decrypted = await decryptBinFile(arrayBuffer);
+        const mime = video.binMime || 'video/mp4';
+        const blob = new Blob([decrypted], { type: mime });
+        src = URL.createObjectURL(blob);
+        blobRef.current = src;
+      } catch (err) {
+        stopMatrix();
+        setPhase('idle');
+        setBtnLabel('▶ Decrypt & Play');
+        toast('Failed to fetch or decrypt the video file.', 'error');
+        return;
+      }
     } else {
-      // Pre-loaded video — use its assigned local source directly
-      src = video.src || '/vr_4k.mp4';
+      // Case 3: Cloudinary CDN or local asset — play directly
+      src = video.src || video.srcFallback || '/vr_4k.mp4';
     }
 
     await sleep(500);
@@ -225,7 +266,15 @@ export default function VideoModal({ video, onClose }) {
                   controlsList="nodownload noremoteplayback"
                   disablePictureInPicture
                   onContextMenu={e => e.preventDefault()}
-                  onError={() => setLoadError(true)}
+                  onError={() => {
+                    if (video.srcFallback && videoSrc !== video.srcFallback) {
+                      // CDN failed — fall back to local asset
+                      toast('CDN unavailable, switching to local asset…', 'info', 3000);
+                      setVideoSrc(video.srcFallback);
+                    } else {
+                      setLoadError(true);
+                    }
+                  }}
                   style={{
                     position: 'absolute', inset: 0,
                     width: '100%', height: '100%',
