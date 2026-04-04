@@ -214,17 +214,6 @@ export default function VRViewer({ src, onClose }) {
           </button>
         )}
 
-        <div style={infoBoxStyle}>
-          <span style={{ fontSize: '1rem' }}>🥽</span>
-          <div>
-            <div style={{ color: '#efefef', fontWeight: 700, marginBottom: 2, fontSize: '0.82rem', fontFamily: 'IBM Plex Mono,monospace' }}>
-              Drag to look around &nbsp;·&nbsp; Click <strong style={{ color: '#c8ff00' }}>[⊙]</strong> for headset mode
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#555', fontFamily: 'IBM Plex Mono,monospace' }}>
-              Head tracking active in VR mode
-            </div>
-          </div>
-        </div>
       </div>
 
       <a-scene
