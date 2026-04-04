@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
-const ACCEPTED_EXTS = ['.mp4', '.webm', '.mov', '.mkv', '.ts', '.m2ts', '.avi'];
+const ACCEPTED_EXTS = ['.mp4', '.webm', '.mov', '.mkv', '.ts', '.m2ts', '.avi', '.bin'];
 
 export default function UploadModal({ onClose }) {
   const { addVideo, role } = useAuth();
@@ -21,7 +21,7 @@ export default function UploadModal({ onClose }) {
     if (!file) { setFilePreview(''); return; }
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     if (!ACCEPTED_EXTS.includes(ext)) {
-      setFilePreview('❌ Unsupported format. Use .mp4, .webm, .mov, .mkv, .ts, .avi');
+      setFilePreview('❌ Unsupported format. Use .mp4, .webm, .mov, .mkv, .ts, .avi, .bin');
       fileRef.current.value = '';
     } else {
       setFilePreview(`✅ ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
@@ -42,18 +42,24 @@ export default function UploadModal({ onClose }) {
       return;
     }
 
+    const isBin = ext === '.bin';
     setLoading(true);
     setLoadPct(0);
 
-    // Read file into memory and create a session-local blob URL
-    const blobUrl = await new Promise((resolve, reject) => {
+    // For .bin: keep raw ArrayBuffer so VideoModal can decrypt it (fileData path).
+    // For video files: create a session-local blob URL (src path).
+    const result = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onprogress = e => {
         if (e.lengthComputable) setLoadPct(Math.round((e.loaded / e.total) * 90));
       };
       reader.onload = () => {
-        const blob = new Blob([reader.result], { type: file.type || 'video/mp4' });
-        resolve(URL.createObjectURL(blob));
+        if (isBin) {
+          resolve({ fileData: reader.result });
+        } else {
+          const blob = new Blob([reader.result], { type: file.type || 'video/mp4' });
+          resolve({ src: URL.createObjectURL(blob) });
+        }
       };
       reader.onerror = () => reject(reader.error);
       reader.readAsArrayBuffer(file);
@@ -63,21 +69,21 @@ export default function UploadModal({ onClose }) {
       return null;
     });
 
-    if (!blobUrl) return;
+    if (!result) return;
 
     setLoadPct(100);
 
     const newVideo = {
-      id:         'v' + Date.now(),
-      title:      title.trim() || file.name.replace(/\.[^.]+$/, ''),
-      category:   cat,
-      duration:   'Classified',
-      resolution: 'Encrypted',
-      size:       (file.size / 1024 / 1024).toFixed(1) + ' MB',
-      thumb:      '/thumb1.png',
-      desc:       desc.trim() || 'Encrypted VR content uploaded via Unity Stream.',
-      src:        blobUrl,
+      id:          'v' + Date.now(),
+      title:       title.trim() || file.name.replace(/\.[^.]+$/, ''),
+      category:    cat,
+      duration:    'Classified',
+      resolution:  isBin ? '8K VR' : 'Uploaded',
+      size:        (file.size / 1024 / 1024).toFixed(1) + ' MB',
+      thumb:       '/thumb1.png',
+      desc:        desc.trim() || 'Encrypted VR content uploaded via Unity Stream.',
       binFileName: file.name,
+      ...result,
     };
 
     addVideo(newVideo);
@@ -105,12 +111,12 @@ export default function UploadModal({ onClose }) {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Video File (.mp4 · .webm · .mov · .mkv · .ts · .avi)</label>
+            <label className="form-label">Video File (.mp4 · .webm · .mov · .mkv · .ts · .avi · .bin)</label>
             <input
               className="form-input"
               type="file"
               ref={fileRef}
-              accept=".mp4,.webm,.mov,.mkv,.ts,.m2ts,.avi"
+              accept=".mp4,.webm,.mov,.mkv,.ts,.m2ts,.avi,.bin"
               required
               onChange={handleFileChange}
             />

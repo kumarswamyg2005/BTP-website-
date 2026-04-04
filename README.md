@@ -24,6 +24,7 @@ Live demo → **[btp-website-sage.vercel.app](https://btp-website-sage.vercel.ap
 - **Synchronized Broadcast** — When a video plays with registered headsets, a live broadcast panel shows each headset transitioning from Buffering → Streaming
 - **Role-Based Access Control** — Admin, Editor, and Player Dev roles with session persistence via `sessionStorage`
 - **Admin Video Upload** — Admin/Editor users can upload any video format (MP4, MKV, MOV, WEBM, TS, AVI); the file is read locally and added to the session library instantly
+- **Invisible Watermarking** — Every video playback session embeds a per-user, per-session invisible watermark for forensic leak tracing (`WatermarkedPlayer.jsx`)
 - **Content Protection** — Right-click disabled, screenshot shortcuts blocked, download controls removed, drag-to-save disabled on all media
 - **Video Encryptor Utility** — Standalone `encrypt-video.html` tool to encrypt any video file into an AES-256-CTR `.bin` ready for the player
 
@@ -104,24 +105,32 @@ Use the included **`encrypt-video.html`** utility (open directly in any browser 
 ## Project Structure
 
 ```
-├── assets/                  # Static files served by Vite (videos, thumbs, .bin files)
+├── assets/                       # Static files served by Vite (videos, thumbs, .bin files)
 ├── src/
 │   ├── components/
-│   │   ├── VRViewer.jsx     # A-Frame 360° WebXR player (portal-rendered, Quest-compatible)
-│   │   ├── VideoModal.jsx   # Decrypt & play modal with sync broadcast panel
-│   │   ├── UploadModal.jsx  # Admin video upload (local FileReader → blob URL)
-│   │   └── Navbar.jsx
+│   │   ├── VRViewer.jsx          # A-Frame 360° WebXR player (portal-rendered, Quest-compatible)
+│   │   ├── VideoModal.jsx        # Decrypt & play modal with sync broadcast panel
+│   │   ├── WatermarkedPlayer.jsx # Per-session invisible watermark overlay for leak tracing
+│   │   ├── UploadModal.jsx       # Admin video upload (local FileReader → blob URL)
+│   │   ├── Navbar.jsx
+│   │   ├── Layout.jsx            # Shared page layout wrapper
+│   │   ├── PageTransition.jsx    # Framer Motion route transition wrapper
+│   │   ├── ParticleCanvas.jsx    # Animated particle background
+│   │   ├── SpotlightCard.jsx     # Spotlight video card component
+│   │   └── VideoCard.jsx         # Standard library video card component
 │   ├── pages/
-│   │   ├── HomePage.jsx     # Video library with search, filter, spotlight cards
-│   │   ├── HeadsetsPage.jsx # Headset scan, register, release, active management
+│   │   ├── LoginPage.jsx         # Login screen with role selection
+│   │   ├── HomePage.jsx          # Video library with search, filter, spotlight cards
+│   │   ├── HeadsetsPage.jsx      # Headset scan, register, release, active management
 │   │   ├── CloudPage.jsx
 │   │   └── AdminPage.jsx
 │   ├── context/
-│   │   └── AuthContext.jsx  # Auth, headset state, video library, session persistence
+│   │   ├── AuthContext.jsx       # Auth, headset state, video library, session persistence
+│   │   └── ToastContext.jsx      # Global toast notification system
 │   └── data/
-│       └── videos.js        # Demo video catalogue
-├── encrypt-video.html       # Standalone AES-256-CTR video encryptor utility
-├── vercel.json              # SPA routing rewrite rule for Vercel
+│       └── videos.js             # Demo video catalogue
+├── encrypt-video.html            # Standalone AES-256-CTR video encryptor utility
+├── vercel.json                   # SPA routing rewrite rule for Vercel
 └── vite.config.js
 ```
 

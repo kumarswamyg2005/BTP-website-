@@ -1,802 +1,1216 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Unity Stream — Video Encryptor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+    rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:          #070c18;
-      --bg-card:     #0d1526;
-      --bg-card2:    #111d35;
-      --border:      rgba(79, 142, 247, 0.18);
-      --cyan:        #4f8ef7;
-      --purple:      #7c5cfc;
-      --success:     #22d3a5;
-      --danger:      #f87171;
-      --warn:        #fbbf24;
-      --text:        #e2e8f0;
-      --muted:       #64748b;
-      --font:        'Inter', system-ui, sans-serif;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
     }
 
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    :root {
+      --ink: #0a0a0a;
+      --ink-2: #1c1c1e;
+      --ink-3: #2c2c2e;
+      --ink-4: #3a3a3c;
+      --rule: #e5e4e0;
+      --rule-2: #d1cfc9;
+      --paper: #f5f3ef;
+      --paper-2: #ede9e3;
+      --paper-3: #e5e0d8;
+      --acid: #c8f04e;
+      --acid-dim: #a8cc38;
+      --acid-bg: #f0fad4;
+      --red: #e8412a;
+      --red-bg: #fde8e5;
+      --blue: #1a56db;
+      --blue-bg: #e8f0fe;
+      --mono: 'DM Mono', monospace;
+      --head: 'Syne', sans-serif;
+      --body: 'DM Sans', sans-serif;
+      --r: 4px;
+      --r2: 8px;
+      --r3: 14px;
+    }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 15px;
+      line-height: 1.55;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 16px 80px;
+      padding: 0 0 80px;
     }
 
-    /* ── Animated background grid ── */
+    /* ── Noise texture overlay ─────────────────────── */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background:
-        linear-gradient(rgba(79,142,247,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(79,142,247,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      z-index: -1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 128px 128px;
+      pointer-events: none;
+      z-index: 0;
     }
 
-    /* ── Header ── */
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
+    /* ── Masthead bar ──────────────────────────────── */
+    .masthead {
+      width: 100%;
+      border-bottom: 1.5px solid var(--ink);
+      padding: 0 32px;
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
     }
-    .logo-badge {
-      display: inline-flex;
+
+    .mast-left {
+      display: flex;
       align-items: center;
-      gap: 10px;
-      background: rgba(79,142,247,0.1);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 6px 18px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--cyan);
+      gap: 20px;
+      padding: 14px 0;
+      border-right: 1px solid var(--rule-2);
+      padding-right: 20px;
+    }
+
+    .mast-logo {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .mast-slash {
+      color: var(--rule-2);
+      font-weight: 300;
+    }
+
+    .mast-sub {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--ink-4);
+      letter-spacing: 0.04em;
+    }
+
+    .mast-badge {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--ink);
+      color: var(--acid);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 20px;
-    }
-    .logo-badge::before {
-      content: '🔐';
-      font-size: 1rem;
-    }
-    h1 {
-      font-size: 2.2rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #fff 30%, var(--cyan) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 10px;
-    }
-    .subtitle {
-      color: var(--muted);
-      font-size: 0.95rem;
-      max-width: 480px;
-      margin: 0 auto;
-      line-height: 1.6;
+      border-left: 1.5px solid var(--ink);
     }
 
-    /* ── Card ── */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 32px;
+    .mast-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--acid);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.4
+      }
+    }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero {
       width: 100%;
-      max-width: 640px;
-      box-shadow: 0 0 60px rgba(79,142,247,0.06);
+      max-width: 880px;
+      padding: 60px 32px 0;
+      position: relative;
+      z-index: 1;
     }
 
-    .section-label {
-      font-size: 0.72rem;
-      font-weight: 700;
+    .hero-kicker {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-kicker::before {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 1.5px;
+      background: var(--ink-4);
+    }
+
+    .hero-title {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin-bottom: 18px;
+    }
+
+    .hero-title em {
+      font-style: normal;
+      color: var(--ink-4);
+    }
+
+    .hero-body {
+      font-size: 15px;
+      font-weight: 300;
+      color: var(--ink-4);
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--paper-3);
+      border: 1px solid var(--rule-2);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-family: var(--mono);
+      font-size: 0.85em;
+      color: var(--ink-3);
+    }
+
+    /* ── Divider rule ─────────────────────────────── */
+    .rule {
+      width: 100%;
+      max-width: 880px;
+      padding: 0 32px;
+      margin: 40px 0 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .rule hr {
+      border: none;
+      border-top: 1px solid var(--rule);
+    }
+
+    /* ── Layout ───────────────────────────────────── */
+    .layout {
+      width: 100%;
+      max-width: 880px;
+      padding: 0 32px;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 32px;
+      margin-top: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media(max-width:720px) {
+      .layout {
+        grid-template-columns: 1fr
+      }
+
+      .sidebar {
+        order: -1
+      }
+
+      .masthead {
+        padding: 0 16px
+      }
+
+      .hero,
+      .rule,
+      .layout {
+        padding-left: 16px;
+        padding-right: 16px
+      }
+    }
+
+    /* ── Panel (shared card style) ────────────────── */
+    .panel {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: var(--r3);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-head-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--cyan);
-      margin-bottom: 12px;
+      color: var(--ink-4);
     }
 
-    /* ── Drop zone ── */
-    .drop-zone {
-      border: 2px dashed rgba(79,142,247,0.3);
-      border-radius: 14px;
-      padding: 40px 24px;
+    .panel-head-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--rule-2);
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    /* ── Drop zone ────────────────────────────────── */
+    .drop {
+      border: 1.5px dashed var(--rule-2);
+      border-radius: var(--r2);
+      padding: 36px 20px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
       position: relative;
-      background: rgba(79,142,247,0.03);
-      margin-bottom: 24px;
+      transition: border-color 0.18s, background 0.18s;
+      background: var(--paper);
     }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--cyan);
-      background: rgba(79,142,247,0.07);
+
+    .drop:hover,
+    .drop.over {
+      border-color: var(--ink);
+      background: var(--paper-2)
     }
-    .drop-zone input[type=file] {
+
+    .drop input {
       position: absolute;
       inset: 0;
       opacity: 0;
       cursor: pointer;
       width: 100%;
-      height: 100%;
+      height: 100%
     }
-    .drop-icon { font-size: 2.8rem; margin-bottom: 12px; }
-    .drop-text { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-    .drop-hint { font-size: 0.82rem; color: var(--muted); }
-    .drop-hint strong { color: var(--cyan); }
 
-    /* ── File info box ── */
-    .file-info {
+    .drop-icon {
+      width: 44px;
+      height: 44px;
+      border: 1.5px solid var(--rule-2);
+      border-radius: var(--r2);
+      margin: 0 auto 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      background: #fff;
+      transition: border-color 0.18s;
+    }
+
+    .drop:hover .drop-icon,
+    .drop.over .drop-icon {
+      border-color: var(--ink)
+    }
+
+    .drop-label {
+      font-family: var(--head);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px
+    }
+
+    .drop-hint {
+      font-size: 12px;
+      color: var(--ink-4);
+      font-weight: 300
+    }
+
+    .drop-exts {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-4);
+      margin-top: 8px;
+      letter-spacing: 0.04em
+    }
+
+    /* ── File chip ────────────────────────────────── */
+    .file-chip {
       display: none;
       align-items: center;
-      gap: 14px;
-      background: rgba(34,211,165,0.07);
-      border: 1px solid rgba(34,211,165,0.25);
-      border-radius: 10px;
-      padding: 14px 18px;
-      margin-bottom: 24px;
+      gap: 12px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--r2);
+      padding: 12px 14px;
+      margin-top: 14px;
     }
-    .file-info.show { display: flex; }
-    .file-info .fi-icon { font-size: 1.8rem; flex-shrink: 0; }
-    .file-info .fi-name { font-weight: 700; font-size: 0.95rem; color: var(--success); }
-    .file-info .fi-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-    .file-info .fi-clear {
+
+    .file-chip.show {
+      display: flex
+    }
+
+    .fc-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--ink);
+      border-radius: var(--r);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .fc-name {
+      font-size: 13px;
+      font-weight: 500;
+      word-break: break-all;
+      line-height: 1.35
+    }
+
+    .fc-meta {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--ink-4);
+      margin-top: 2px
+    }
+
+    .fc-rm {
       margin-left: auto;
       background: none;
       border: none;
-      color: var(--muted);
-      font-size: 1.1rem;
       cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: color 0.15s;
+      color: var(--ink-4);
+      font-size: 16px;
+      padding: 4px;
+      border-radius: var(--r);
+      transition: color 0.15s, background 0.15s;
+      flex-shrink: 0
     }
-    .file-info .fi-clear:hover { color: var(--danger); }
 
-    /* ── Encryption config ── */
-    .config-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 24px;
+    .fc-rm:hover {
+      color: var(--red);
+      background: var(--red-bg)
     }
-    @media (max-width: 480px) { .config-grid { grid-template-columns: 1fr; } }
 
-    .config-item {
-      background: var(--bg-card2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-    }
-    .config-item .ci-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .config-item .ci-value { font-size: 0.88rem; font-weight: 700; color: var(--cyan); font-family: 'Courier New', monospace; }
-    .config-item .ci-value.small { font-size: 0.72rem; word-break: break-all; }
-
-    /* ── Progress ── */
-    .progress-wrap {
+    /* ── Progress ─────────────────────────────────── */
+    .prog-wrap {
       display: none;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 24px;
+      margin-top: 20px
     }
-    .progress-wrap.show { display: flex; }
 
-    .progress-status {
+    .prog-wrap.show {
+      display: block
+    }
+
+    .prog-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
+      align-items: baseline;
+      margin-bottom: 8px
     }
-    .progress-status .ps-label { color: var(--text); font-weight: 600; }
-    .progress-status .ps-pct   { color: var(--cyan); font-weight: 700; font-family: monospace; }
 
-    .progress-bar {
-      height: 8px;
-      background: rgba(79,142,247,0.12);
-      border-radius: 100px;
+    .prog-status {
+      font-size: 12px;
+      font-weight: 500
+    }
+
+    .prog-pct {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-4)
+    }
+
+    .prog-track {
+      height: 3px;
+      background: var(--rule);
+      border-radius: 2px;
       overflow: hidden;
+      margin-bottom: 14px
     }
-    .progress-fill {
+
+    .prog-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--cyan), var(--purple));
-      border-radius: 100px;
+      background: var(--ink);
+      border-radius: 2px;
       transition: width 0.25s ease;
-      width: 0%;
+      width: 0%
     }
 
-    .log-box {
-      background: #050811;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+    .log {
+      background: var(--ink);
+      border-radius: var(--r2);
       padding: 12px 14px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.78rem;
-      color: #4ade80;
-      min-height: 90px;
-      max-height: 180px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #9caf70;
+      min-height: 80px;
+      max-height: 160px;
       overflow-y: auto;
-      line-height: 1.7;
+      line-height: 1.8;
     }
-    .log-box .log-warn  { color: var(--warn); }
-    .log-box .log-error { color: var(--danger); }
-    .log-box .log-info  { color: var(--cyan); }
-    .log-box .log-dim   { color: var(--muted); }
 
-    /* ── Button ── */
-    .btn-encrypt {
+    .log .lw {
+      color: #e8b84b
+    }
+
+    .log .le {
+      color: #f87171
+    }
+
+    .log .li {
+      color: #7db4f5
+    }
+
+    .log .ld {
+      color: #555
+    }
+
+    /* ── Encrypt button ───────────────────────────── */
+    .btn-enc {
       width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      border: none;
-      border-radius: 12px;
+      margin-top: 20px;
+      padding: 15px 20px;
+      background: var(--ink);
       color: #fff;
-      font-family: var(--font);
-      font-size: 1rem;
+      border: none;
+      border-radius: var(--r2);
+      font-family: var(--head);
+      font-size: 14px;
       font-weight: 700;
+      letter-spacing: 0.04em;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
-      transition: opacity 0.2s, transform 0.15s;
-      box-shadow: 0 4px 24px rgba(79,142,247,0.3);
+      transition: background 0.15s, transform 0.12s;
+      position: relative;
+      overflow: hidden;
     }
-    .btn-encrypt:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.92; }
-    .btn-encrypt:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
+    .btn-enc::after {
+      content: '';
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background: var(--acid);
+      border-radius: 3px;
+      transition: transform 0.15s;
+    }
+
+    .btn-enc:hover:not(:disabled) {
+      background: var(--ink-3);
+      transform: translateY(-1px)
+    }
+
+    .btn-enc:hover:not(:disabled)::after {
+      transform: translateY(-50%) rotate(45deg)
+    }
+
+    .btn-enc:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none
+    }
+
+    .spin {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      flex-shrink: 0;
+      animation: rot 0.7s linear infinite
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Result box ── */
-    .result-box {
+    @keyframes rot {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* ── Result ───────────────────────────────────── */
+    .result {
       display: none;
-      flex-direction: column;
-      gap: 14px;
-      margin-top: 24px;
+      margin-top: 20px
     }
-    .result-box.show { display: flex; }
 
-    .result-success {
-      background: rgba(34,211,165,0.07);
-      border: 1px solid rgba(34,211,165,0.3);
-      border-radius: 12px;
-      padding: 18px 20px;
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
+    .result.show {
+      display: block
     }
-    .result-success .rs-icon { font-size: 1.8rem; flex-shrink: 0; }
-    .result-success .rs-title { font-weight: 700; color: var(--success); font-size: 1rem; margin-bottom: 6px; }
-    .result-success .rs-meta  { font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
-    .result-success .rs-meta strong { color: var(--cyan); }
 
-    .code-snippet {
-      background: #050811;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+    .result-ok {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--ink);
+      border-radius: var(--r2);
       padding: 14px 16px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.8rem;
-      color: #a5f3fc;
+      margin-bottom: 16px;
+    }
+
+    .result-ok-title {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px
+    }
+
+    .result-ok-meta {
+      font-size: 12px;
+      color: var(--ink-4);
+      line-height: 1.65
+    }
+
+    .result-ok-meta b {
+      color: var(--ink)
+    }
+
+    .snippet-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      margin-bottom: 8px;
+      font-weight: 500
+    }
+
+    .snippet {
+      background: var(--ink);
+      border-radius: var(--r2);
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: #c9d1d9;
       position: relative;
       overflow-x: auto;
+      margin-bottom: 14px;
     }
-    .code-snippet .kw  { color: #c084fc; }
-    .code-snippet .st  { color: #86efac; }
-    .code-snippet .prop{ color: #7dd3fc; }
-    .code-snippet .cm  { color: #475569; }
-    .snippet-label {
-      font-size: 0.72rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-      font-weight: 600;
+
+    .snippet pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.7
+    }
+
+    .snippet .kw {
+      color: #ff7b72
+    }
+
+    .snippet .st {
+      color: #a5d6ff
+    }
+
+    .snippet .ky {
+      color: #ffa657
+    }
+
+    .snippet .cm {
+      color: #8b949e
     }
 
     .copy-btn {
       position: absolute;
-      top: 10px; right: 10px;
-      background: rgba(79,142,247,0.12);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--cyan);
-      font-size: 0.72rem;
-      font-family: var(--font);
-      font-weight: 600;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--r);
+      color: #aaa;
+      font-family: var(--mono);
+      font-size: 10px;
       padding: 4px 10px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, color 0.15s;
     }
-    .copy-btn:hover { background: rgba(79,142,247,0.24); }
 
-    .btn-download {
-      padding: 14px;
-      background: rgba(34,211,165,0.1);
-      border: 1px solid rgba(34,211,165,0.35);
-      border-radius: 12px;
-      color: var(--success);
-      font-family: var(--font);
-      font-size: 0.95rem;
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff
+    }
+
+    .btn-dl {
+      width: 100%;
+      padding: 13px 20px;
+      background: #fff;
+      border: 1.5px solid var(--ink);
+      border-radius: var(--r2);
+      font-family: var(--head);
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: background 0.15s, transform 0.15s;
+      gap: 10px;
+      color: var(--ink);
       text-decoration: none;
+      transition: background 0.15s, transform 0.12s;
     }
-    .btn-download:hover { background: rgba(34,211,165,0.18); transform: translateY(-1px); }
 
-    /* ── Info footer ── */
-    .info-panel {
-      width: 100%;
-      max-width: 640px;
-      margin-top: 20px;
-      background: rgba(79,142,247,0.04);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 24px;
+    .btn-dl:hover {
+      background: var(--acid-bg);
+      transform: translateY(-1px)
     }
-    .info-panel h3 { font-size: 0.88rem; font-weight: 700; color: var(--cyan); margin-bottom: 14px; }
-    .steps { display: flex; flex-direction: column; gap: 10px; }
-    .step {
+
+    /* ── Sidebar ──────────────────────────────────── */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .enc-params {
+      padding: 0
+    }
+
+    .param-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .param-row:last-child {
+      border-bottom: none
+    }
+
+    .pr-key {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--ink-4);
+      letter-spacing: 0.04em
+    }
+
+    .pr-val {
+      font-size: 12px;
+      font-family: var(--mono);
+      font-weight: 500;
+      color: var(--ink);
+      text-align: right;
+      max-width: 60%
+    }
+
+    .pr-badge {
+      display: inline-block;
+      background: var(--ink);
+      color: var(--acid);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+
+    .key-panel {
+      padding: 0
+    }
+
+    .kp-inner {
+      padding: 16px 20px
+    }
+
+    .kp-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      margin-bottom: 8px;
+      font-weight: 500
+    }
+
+    .kp-hex {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      word-break: break-all;
+      line-height: 1.8;
+      letter-spacing: 0.04em;
+    }
+
+    .kp-hex span {
+      color: var(--blue)
+    }
+
+    /* ── Steps panel ──────────────────────────────── */
+    .steps-panel {
+      padding: 0
+    }
+
+    .step-item {
       display: flex;
       gap: 12px;
-      align-items: flex-start;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--rule);
     }
-    .step-num {
-      width: 24px; height: 24px;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
+
+    .step-item:last-child {
+      border-bottom: none
+    }
+
+    .step-n {
+      width: 22px;
+      height: 22px;
+      border: 1.5px solid var(--ink);
       border-radius: 50%;
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: #fff;
-      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
       margin-top: 1px;
     }
-    .step-text { font-size: 0.85rem; color: var(--muted); line-height: 1.55; }
-    .step-text strong { color: var(--text); }
-    .step-text code {
-      background: rgba(79,142,247,0.12);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.82em;
-      color: var(--cyan);
+
+    .step-txt {
+      font-size: 12.5px;
+      color: var(--ink-4);
+      line-height: 1.6;
+      font-weight: 300
+    }
+
+    .step-txt b {
+      color: var(--ink);
+      font-weight: 500
+    }
+
+    /* ── Footer strip ─────────────────────────────── */
+    .footer-strip {
+      width: 100%;
+      border-top: 1px solid var(--rule);
+      margin-top: 60px;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    .fs-note {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-4);
+      letter-spacing: 0.04em
+    }
+
+    .fs-mark {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--rule-2);
+    }
+
+    /* ── Scrollbar ────────────────────────────────── */
+    .log::-webkit-scrollbar {
+      width: 4px
+    }
+
+    .log::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .log::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 2px
     }
   </style>
 </head>
+
 <body>
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo-badge">Unity Stream Admin Utility</div>
-    <h1>Video Encryptor</h1>
-    <p class="subtitle">
-      Encrypts any video file (MP4, MKV, MOV, WEBM, TS…) into an
-      AES-256-CTR <code style="background:rgba(79,142,247,.12);padding:2px 7px;border-radius:4px;font-size:.9em;color:#4f8ef7">.bin</code>
-      ready for the Unity Stream player.
+  <!-- Masthead -->
+  <header class="masthead">
+    <div class="mast-left">
+      <span class="mast-logo">Unity Stream</span>
+      <span class="mast-slash">/</span>
+      <span class="mast-sub">admin.encryptor.v2</span>
+    </div>
+    <div class="mast-badge">
+      <div class="mast-dot"></div>
+      AES-256-CTR
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-kicker">Video Encryptor Utility</div>
+    <h1 class="hero-title">Encrypt<br>any video<br><em>for the player.</em></h1>
+    <p class="hero-body">
+      Drop any video file. It's encrypted in-browser using AES-256-CTR and exported as a
+      <span class="tag">.bin</span> ready for Unity Stream's real-time decryption pipeline.
+      No data leaves your machine.
     </p>
   </div>
 
-  <!-- Main card -->
-  <div class="card">
-
-    <div class="section-label">Select Video File</div>
-
-    <!-- Drop zone -->
-    <div class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept="video/*,.ts,.m2ts,.mkv,.avi,.flv,.wmv" />
-      <div class="drop-icon">🎬</div>
-      <div class="drop-text">Drop a video file here or click to browse</div>
-      <div class="drop-hint">
-        Supports <strong>MP4 · MKV · MOV · WEBM · AVI · TS · M2TS · WMV</strong> and all video formats
-      </div>
-    </div>
-
-    <!-- File info -->
-    <div class="file-info" id="fileInfo">
-      <div class="fi-icon">📹</div>
-      <div>
-        <div class="fi-name" id="fiName"></div>
-        <div class="fi-meta" id="fiMeta"></div>
-      </div>
-      <button class="fi-clear" id="fiClear" title="Remove file">✕</button>
-    </div>
-
-    <!-- Encryption config -->
-    <div class="section-label">Encryption Parameters</div>
-    <div class="config-grid">
-      <div class="config-item">
-        <div class="ci-label">Algorithm</div>
-        <div class="ci-value">AES-256-CTR</div>
-      </div>
-      <div class="config-item">
-        <div class="ci-label">Key Length</div>
-        <div class="ci-value">256 bit</div>
-      </div>
-      <div class="config-item">
-        <div class="ci-label">Counter (IV)</div>
-        <div class="ci-value">16 × 0x00</div>
-      </div>
-      <div class="config-item">
-        <div class="ci-label">Counter Bits</div>
-        <div class="ci-value">64</div>
-      </div>
-      <div class="config-item" style="grid-column: 1 / -1;">
-        <div class="ci-label">Key (hex)</div>
-        <div class="ci-value small" id="keyDisplay">00112233445566778899aabbccddeeff<br>00112233445566778899aabbccddeeff</div>
-      </div>
-    </div>
-
-    <!-- Progress log -->
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-status">
-        <span class="ps-label" id="statusLabel">Initialising…</span>
-        <span class="ps-pct" id="statusPct">0%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="log-box" id="logBox"></div>
-    </div>
-
-    <!-- Encrypt button -->
-    <button class="btn-encrypt" id="encryptBtn" disabled>
-      🔐 Encrypt &amp; Download .bin
-    </button>
-
-    <!-- Result -->
-    <div class="result-box" id="resultBox">
-      <div class="result-success">
-        <div class="rs-icon">✅</div>
-        <div>
-          <div class="rs-title">Encryption Complete</div>
-          <div class="rs-meta" id="resultMeta"></div>
-        </div>
-      </div>
-
-      <div>
-        <div class="snippet-label">Add this entry to <strong style="color:#e2e8f0">src/data/videos.js</strong></div>
-        <div class="code-snippet" style="position:relative">
-          <button class="copy-btn" onclick="copySnippet()">Copy</button>
-          <pre id="codeSnippet" style="white-space:pre-wrap;word-break:break-word"></pre>
-        </div>
-      </div>
-
-      <a class="btn-download" id="downloadBtn" href="#" download>
-        ⬇️ Download Encrypted .bin File
-      </a>
-    </div>
-
+  <div class="rule">
+    <hr />
   </div>
 
-  <!-- How-to steps -->
-  <div class="info-panel">
-    <h3>How to add the encrypted video to Unity Stream</h3>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-text">
-          <strong>Encrypt here.</strong> Drop your video, click "Encrypt &amp; Download .bin".
-          A <code>.bin</code> file is saved to your Downloads.
+  <!-- Main layout -->
+  <div class="layout">
+
+    <!-- Left: Main panel -->
+    <div>
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-head-label">Source File</span>
+          <span class="panel-head-num">01 / 03</span>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-text">
-          <strong>Place in assets folder.</strong> Move the <code>.bin</code> file into your project's
-          <code>assets/</code> folder (Vite serves it at <code>/filename.bin</code>).
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-text">
-          <strong>Register in videos.js.</strong> Copy the generated snippet shown after encryption
-          and paste it inside the <code>VIDEOS</code> array in <code>src/data/videos.js</code>.
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-text">
-          <strong>Run the dev server.</strong> <code>npm run dev</code> — the new video appears in
-          the library. The player will fetch, decrypt, and stream it automatically.
+        <div class="panel-body">
+          <!-- Drop zone -->
+          <div class="drop" id="dropZone">
+            <input type="file" id="fileInput" accept="video/*,.ts,.m2ts,.mkv,.avi,.flv,.wmv" />
+            <div class="drop-icon">🎬</div>
+            <div class="drop-label">Drop a video file here</div>
+            <div class="drop-hint">or click anywhere to browse</div>
+            <div class="drop-exts">MP4 · MKV · MOV · WEBM · AVI · TS · M2TS · WMV</div>
+          </div>
+
+          <!-- File chip -->
+          <div class="file-chip" id="fileChip">
+            <div class="fc-icon">📹</div>
+            <div>
+              <div class="fc-name" id="fcName"></div>
+              <div class="fc-meta" id="fcMeta"></div>
+            </div>
+            <button class="fc-rm" id="fcClear" title="Remove">✕</button>
+          </div>
+
+          <!-- Progress -->
+          <div class="prog-wrap" id="progWrap">
+            <div class="prog-row">
+              <span class="prog-status" id="statusLabel">Initialising…</span>
+              <span class="prog-pct" id="statusPct">0%</span>
+            </div>
+            <div class="prog-track">
+              <div class="prog-fill" id="progFill"></div>
+            </div>
+            <div class="log" id="logBox"></div>
+          </div>
+
+          <!-- Button -->
+          <button class="btn-enc" id="encBtn" disabled>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M7.5 1.5a3 3 0 00-3 3v1.25H3.5a1 1 0 00-1 1v5.5a1 1 0 001 1h8a1 1 0 001-1v-5.5a1 1 0 00-1-1H10.5V4.5a3 3 0 00-3-3zm-1.5 3a1.5 1.5 0 013 0v1.25h-3V4.5zm1.5 4a1 1 0 110 2 1 1 0 010-2z"
+                fill="currentColor" />
+            </svg>
+            Encrypt &amp; Download .bin
+          </button>
+
+          <!-- Result -->
+          <div class="result" id="result">
+            <div class="result-ok">
+              <div class="result-ok-title">✓ Encryption complete</div>
+              <div class="result-ok-meta" id="resultMeta"></div>
+            </div>
+
+            <div class="snippet-label">Add to <b>src/data/videos.js</b></div>
+            <div class="snippet" style="position:relative">
+              <button class="copy-btn" onclick="copySnippet()">Copy</button>
+              <pre id="codeSnippet"></pre>
+            </div>
+
+            <a class="btn-dl" id="dlBtn" href="#" download>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                <path d="M7.5 1v9m0 0l-3-3m3 3l3-3M1.5 12.5h12" stroke="currentColor" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span id="dlLabel">Download encrypted .bin</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Right: Sidebar -->
+    <div class="sidebar">
+
+      <!-- Encryption parameters -->
+      <div class="panel enc-params">
+        <div class="panel-head">
+          <span class="panel-head-label">Encryption Params</span>
+          <span class="panel-head-num">02 / 03</span>
+        </div>
+        <div class="param-row">
+          <span class="pr-key">algorithm</span>
+          <span class="pr-badge">AES-256-CTR</span>
+        </div>
+        <div class="param-row">
+          <span class="pr-key">key_length</span>
+          <span class="pr-val">256 bit</span>
+        </div>
+        <div class="param-row">
+          <span class="pr-key">counter_iv</span>
+          <span class="pr-val">16 × 0x00</span>
+        </div>
+        <div class="param-row">
+          <span class="pr-key">counter_bits</span>
+          <span class="pr-val">64</span>
+        </div>
+        <div class="param-row">
+          <span class="pr-key">output_delta</span>
+          <span class="pr-val">0 bytes (preserving)</span>
+        </div>
+      </div>
+
+      <!-- Key display -->
+      <div class="panel key-panel">
+        <div class="panel-head">
+          <span class="panel-head-label">Symmetric Key</span>
+          <span class="panel-head-num">hex / 256-bit</span>
+        </div>
+        <div class="kp-inner">
+          <div class="kp-label">key.hex</div>
+          <div class="kp-hex">
+            <span>00112233</span>44556677<span>8899aabb</span>ccddeeff<br>
+            <span>00112233</span>44556677<span>8899aabb</span>ccddeeff
+          </div>
+        </div>
+      </div>
+
+      <!-- How to steps -->
+      <div class="panel steps-panel">
+        <div class="panel-head">
+          <span class="panel-head-label">Integration Steps</span>
+          <span class="panel-head-num">03 / 03</span>
+        </div>
+        <div class="step-item">
+          <div class="step-n">1</div>
+          <div class="step-txt"><b>Encrypt here.</b> Drop your video and click encrypt. A <span class="tag">.bin</span>
+            saves to Downloads.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-n">2</div>
+          <div class="step-txt"><b>Move the .bin</b> into your project's <span class="tag">assets/</span> folder. Vite
+            serves it at <span class="tag">/filename.bin</span>.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-n">3</div>
+          <div class="step-txt"><b>Copy the snippet</b> shown after encryption into the <span class="tag">VIDEOS</span>
+            array in <span class="tag">src/data/videos.js</span>.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-n">4</div>
+          <div class="step-txt"><b>Run</b> <span class="tag">npm run dev</span>. The player fetches, decrypts, and
+            streams automatically.</div>
+        </div>
+      </div>
+
+    </div>
   </div>
+
+  <!-- Footer -->
+  <footer class="footer-strip">
+    <span class="fs-note">aes-256-ctr · webcrypto api · in-browser · no upload</span>
+    <span class="fs-mark">Unity Stream</span>
+  </footer>
 
   <script>
-    // ── Constants — must match VideoModal.jsx decryptBinFile() ──────────────
-    const KEY_HEX  = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
-    const COUNTER  = new Uint8Array(16);   // 16 zero bytes
-    const CTR_LEN  = 64;                   // counter bit length
+    const KEY_HEX = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
+    const CTR_LEN = 64;
 
-    // ── State ───────────────────────────────────────────────────────────────
-    let selectedFile  = null;
-    let encryptedBlob = null;
-    let outputName    = '';
+    let selectedFile = null, encBlob = null, outName = '';
 
-    // ── Elements ─────────────────────────────────────────────────────────────
-    const dropZone    = document.getElementById('dropZone');
-    const fileInput   = document.getElementById('fileInput');
-    const fileInfo    = document.getElementById('fileInfo');
-    const fiName      = document.getElementById('fiName');
-    const fiMeta      = document.getElementById('fiMeta');
-    const fiClear     = document.getElementById('fiClear');
-    const encryptBtn  = document.getElementById('encryptBtn');
-    const progressWrap= document.getElementById('progressWrap');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileChip = document.getElementById('fileChip');
+    const fcName = document.getElementById('fcName');
+    const fcMeta = document.getElementById('fcMeta');
+    const fcClear = document.getElementById('fcClear');
+    const encBtn = document.getElementById('encBtn');
+    const progWrap = document.getElementById('progWrap');
     const statusLabel = document.getElementById('statusLabel');
-    const statusPct   = document.getElementById('statusPct');
-    const progressFill= document.getElementById('progressFill');
-    const logBox      = document.getElementById('logBox');
-    const resultBox   = document.getElementById('resultBox');
-    const resultMeta  = document.getElementById('resultMeta');
+    const statusPct = document.getElementById('statusPct');
+    const progFill = document.getElementById('progFill');
+    const logBox = document.getElementById('logBox');
+    const result = document.getElementById('result');
+    const resultMeta = document.getElementById('resultMeta');
     const codeSnippet = document.getElementById('codeSnippet');
-    const downloadBtn = document.getElementById('downloadBtn');
+    const dlBtn = document.getElementById('dlBtn');
+    const dlLabel = document.getElementById('dlLabel');
 
-    // ── Drag and drop ────────────────────────────────────────────────────────
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
-    });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const f = e.dataTransfer.files[0];
-      if (f) setFile(f);
-    });
-
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) setFile(fileInput.files[0]);
-    });
-
-    fiClear.addEventListener('click', clearFile);
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over') });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]) });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]) });
+    fcClear.addEventListener('click', clearFile);
 
     function setFile(f) {
-      selectedFile  = f;
-      encryptedBlob = null;
-      outputName    = '';
-
-      fiName.textContent = f.name;
-      fiMeta.textContent = `${formatBytes(f.size)} · ${f.type || 'unknown type'} · Modified ${new Date(f.lastModified).toLocaleDateString()}`;
-      fileInfo.classList.add('show');
-      encryptBtn.disabled = false;
-      resultBox.classList.remove('show');
-      progressWrap.classList.remove('show');
+      selectedFile = f; encBlob = null; outName = '';
+      fcName.textContent = f.name;
+      fcMeta.textContent = `${fmtBytes(f.size)} · ${f.type || 'unknown'} · ${new Date(f.lastModified).toLocaleDateString()}`;
+      fileChip.classList.add('show');
+      encBtn.disabled = false;
+      result.classList.remove('show');
+      progWrap.classList.remove('show');
       logBox.innerHTML = '';
-      setProgress(0, '');
+      setP(0, '');
     }
 
     function clearFile() {
-      selectedFile = null;
-      encryptedBlob = null;
-      outputName = '';
+      selectedFile = null; encBlob = null; outName = '';
       fileInput.value = '';
-      fileInfo.classList.remove('show');
-      encryptBtn.disabled = true;
-      resultBox.classList.remove('show');
-      progressWrap.classList.remove('show');
+      fileChip.classList.remove('show');
+      encBtn.disabled = true;
+      result.classList.remove('show');
+      progWrap.classList.remove('show');
       logBox.innerHTML = '';
-      setProgress(0, '');
+      setP(0, '');
     }
 
-    // ── Encrypt ──────────────────────────────────────────────────────────────
-    encryptBtn.addEventListener('click', async () => {
+    encBtn.addEventListener('click', async () => {
       if (!selectedFile) return;
-
-      encryptBtn.disabled = true;
-      resultBox.classList.remove('show');
-      encryptedBlob = null;
-
-      progressWrap.classList.add('show');
+      encBtn.disabled = true;
+      result.classList.remove('show');
+      encBlob = null;
+      progWrap.classList.add('show');
       logBox.innerHTML = '';
 
+      const origHTML = encBtn.innerHTML;
+      encBtn.innerHTML = '<div class="spin"></div> Encrypting…';
+
       try {
-        log('info', `[INIT] Source file: ${selectedFile.name} (${formatBytes(selectedFile.size)})`);
-        log('info', `[INIT] MIME type detected: ${selectedFile.type || 'application/octet-stream'}`);
-        setProgress(5, 'Reading file into memory…');
-        await tick();
+        log('i', `[INIT] ${selectedFile.name} (${fmtBytes(selectedFile.size)})`);
+        log('i', `[INIT] MIME: ${selectedFile.type || 'application/octet-stream'}`);
+        setP(5, 'Reading file…'); await tick();
 
-        // 1. Read file
-        log('dim', '[READ] Loading ArrayBuffer…');
-        const arrayBuffer = await readFile(selectedFile);
-        log(null, `[READ] Done — ${formatBytes(arrayBuffer.byteLength)} loaded`);
-        setProgress(20, 'Importing AES-256 key…');
-        await tick();
+        log('d', '[READ] Loading ArrayBuffer…');
+        const buf = await readFile(selectedFile);
+        log(null, `[READ] ${fmtBytes(buf.byteLength)} loaded`);
+        setP(20, 'Importing key…'); await tick();
 
-        // 2. Import key
-        log('info', '[KEY]  Importing AES-256-CTR key via WebCrypto…');
+        log('i', '[KEY] Importing AES-256-CTR key…');
         const keyBytes = hexToBytes(KEY_HEX);
-        const cryptoKey = await crypto.subtle.importKey(
-          'raw', keyBytes, { name: 'AES-CTR' }, false, ['encrypt']
-        );
-        log(null, `[KEY]  Key imported (256-bit, non-extractable)`);
-        setProgress(35, 'Running AES-256-CTR encryption…');
-        await tick();
+        const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CTR' }, false, ['encrypt']);
+        log(null, '[KEY] 256-bit key ready');
+        setP(35, 'Encrypting…'); await tick();
 
-        // 3. Encrypt in chunks for progress feedback
-        log('info', '[ENC]  Starting AES-256-CTR stream encryption…');
-        const CHUNK = 64 * 1024 * 1024; // 64 MB chunks
-        const totalBytes = arrayBuffer.byteLength;
+        log('i', '[ENC] AES-256-CTR stream encryption starting…');
+        const CHUNK = 64 * 1024 * 1024;
+        const total = buf.byteLength;
         const chunks = [];
-        let offset = 0;
-        let chunkIdx = 0;
+        let offset = 0, idx = 0;
 
-        while (offset < totalBytes) {
-          const end  = Math.min(offset + CHUNK, totalBytes);
-          const slice = arrayBuffer.slice(offset, end);
-
-          // Counter for this chunk — increment by (offset / 16) blocks
-          // AES-CTR with a 64-bit counter: we track the block number manually
+        while (offset < total) {
+          const end = Math.min(offset + CHUNK, total);
+          const slice = buf.slice(offset, end);
           const counter = new Uint8Array(16);
-          const blockNum = offset / 16; // AES block = 16 bytes
-          // Write blockNum into the lower 8 bytes of counter (big-endian)
-          // Since we use length:64 (lower 64 bits are counter), write to bytes 8-15
-          const bn = BigInt(Math.floor(blockNum));
-          for (let i = 0; i < 8; i++) {
-            counter[15 - i] = Number((bn >> BigInt(i * 8)) & 0xffn);
-          }
-
-          const encChunk = await crypto.subtle.encrypt(
-            { name: 'AES-CTR', counter, length: CTR_LEN },
-            cryptoKey,
-            slice
-          );
-          chunks.push(new Uint8Array(encChunk));
-          offset = end;
-          chunkIdx++;
-
-          const pct = 35 + Math.round(((offset / totalBytes) * 50));
-          setProgress(pct, `Encrypting… ${formatBytes(offset)} / ${formatBytes(totalBytes)}`);
-          log('dim', `[ENC]  Chunk ${chunkIdx} encrypted — offset ${formatBytes(offset)}`);
+          const bn = BigInt(Math.floor(offset / 16));
+          for (let i = 0; i < 8; i++)counter[15 - i] = Number((bn >> BigInt(i * 8)) & 0xffn);
+          const enc = await crypto.subtle.encrypt({ name: 'AES-CTR', counter, length: CTR_LEN }, cryptoKey, slice);
+          chunks.push(new Uint8Array(enc));
+          offset = end; idx++;
+          const pct = 35 + Math.round((offset / total) * 50);
+          setP(pct, `Encrypting… ${fmtBytes(offset)} / ${fmtBytes(total)}`);
+          log('d', `[ENC] Chunk ${idx} → offset ${fmtBytes(offset)}`);
           await tick();
         }
 
-        setProgress(88, 'Building .bin output…');
-        await tick();
-
-        // 4. Merge chunks
-        log(null, '[MERGE] Combining encrypted chunks…');
+        setP(88, 'Building .bin…'); await tick();
+        log(null, '[MERGE] Combining chunks…');
         const totalLen = chunks.reduce((s, c) => s + c.byteLength, 0);
-        const merged   = new Uint8Array(totalLen);
-        let   off2     = 0;
+        const merged = new Uint8Array(totalLen);
+        let off2 = 0;
         for (const c of chunks) { merged.set(c, off2); off2 += c.byteLength; }
 
-        // 5. Create blob
-        encryptedBlob = new Blob([merged], { type: 'application/octet-stream' });
-        const baseName = selectedFile.name.replace(/\.[^.]+$/, '');
-        outputName = baseName + '_encrypted.bin';
+        encBlob = new Blob([merged], { type: 'application/octet-stream' });
+        const base = selectedFile.name.replace(/\.[^.]+$/, '');
+        outName = base + '_encrypted.bin';
+        setP(100, 'Done.');
+        log(null, `[DONE] ${fmtBytes(encBlob.size)} — ${outName}`);
 
-        setProgress(100, 'Done!');
-        log(null, `[DONE] Encrypted size: ${formatBytes(encryptedBlob.size)}`);
-        log(null, `[DONE] Output file: ${outputName}`);
-
-        // 6. Show result
-        showResult(baseName, totalBytes, encryptedBlob.size);
-
-      } catch (err) {
-        log('error', `[ERROR] ${err.message}`);
-        setProgress(0, 'Encryption failed');
-        encryptBtn.disabled = false;
+        showResult(base, buf.byteLength, encBlob.size);
+      } catch (e) {
+        log('e', `[ERROR] ${e.message}`);
+        setP(0, 'Encryption failed');
+      } finally {
+        encBtn.innerHTML = origHTML;
+        encBtn.disabled = false;
       }
     });
 
-    // ── Result display ───────────────────────────────────────────────────────
-    function showResult(baseName, originalSize, encSize) {
+    function showResult(base, orig, enc) {
       const mime = selectedFile.type || 'video/mp4';
-      const binPath = `/${outputName}`;
-      const varName = 'v' + Date.now();
+      const binPath = '/' + outName;
+      const id = 'v' + Date.now();
 
-      resultMeta.innerHTML =
-        `Output: <strong>${outputName}</strong> · ` +
-        `${formatBytes(encSize)} (same as original — AES-CTR is length-preserving) · ` +
-        `Original MIME: <strong>${mime}</strong>`;
+      resultMeta.innerHTML = `Output: <b>${outName}</b> · ${fmtBytes(enc)} · AES-CTR is length-preserving · Original MIME: <b>${mime}</b>`;
 
-      // Generate videos.js snippet
-      const snippet =
-`{
-  id: '${varName}',
-  title: '${titleCase(baseName.replace(/[_-]/g, ' '))}',
-  category: 'experience',          // training | experience | simulation | neural
+      const snippet = `{
+  id: '${id}',
+  title: '${titleCase(base.replace(/[_-]/g, ' '))}',
+  category: 'experience',
   duration: 'Classified',
   resolution: '4K VR',
-  size: '${formatBytes(originalSize)}',
+  size: '${fmtBytes(orig)}',
   thumb: '/thumb1.png',
-  binSrc: '${binPath}',            // place the .bin in assets/ folder
+  binSrc: '${binPath}',
   binMime: '${mime}',
-  desc: 'Encrypted VR content. AES-256-CTR encrypted — decrypted and rendered in real-time.',
+  desc: 'AES-256-CTR encrypted. Decrypted and streamed in real-time.',
 },`;
 
-      codeSnippet.innerHTML = htmlEscape(snippet);
+      codeSnippet.innerHTML = htmlEsc(snippet);
 
-      // Download link
-      const url = URL.createObjectURL(encryptedBlob);
-      downloadBtn.href     = url;
-      downloadBtn.download = outputName;
-      downloadBtn.textContent = `⬇️ Download ${outputName} (${formatBytes(encSize)})`;
-
-      resultBox.classList.add('show');
-      encryptBtn.disabled = false;
-      resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const url = URL.createObjectURL(encBlob);
+      dlBtn.href = url; dlBtn.download = outName;
+      dlLabel.textContent = `Download ${outName} (${fmtBytes(enc)})`;
+      result.classList.add('show');
+      result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-    function readFile(file) {
-      return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload  = () => res(r.result);
-        r.onerror = () => rej(r.error);
-        r.readAsArrayBuffer(file);
-      });
-    }
-
-    function hexToBytes(hex) {
-      return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
-    }
-
-    function formatBytes(n) {
-      if (n >= 1073741824) return (n / 1073741824).toFixed(2) + ' GB';
-      if (n >= 1048576)    return (n / 1048576).toFixed(1) + ' MB';
-      if (n >= 1024)       return (n / 1024).toFixed(0) + ' KB';
-      return n + ' B';
-    }
-
-    function titleCase(s) {
-      return s.replace(/\b\w/g, c => c.toUpperCase());
-    }
-
-    function htmlEscape(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    function setProgress(pct, label) {
-      progressFill.style.width = pct + '%';
-      statusPct.textContent    = pct + '%';
-      if (label) statusLabel.textContent = label;
-    }
-
-    function log(type, msg) {
-      const line = document.createElement('div');
-      if (type) line.className = 'log-' + type;
-      line.textContent = msg;
-      logBox.appendChild(line);
-      logBox.scrollTop = logBox.scrollHeight;
-    }
-
-    function tick() {
-      return new Promise(r => setTimeout(r, 0));
-    }
-
-    function copySnippet() {
-      const text = codeSnippet.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        btn.textContent = '✓ Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
-      });
-    }
+    function readFile(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsArrayBuffer(f) }) }
+    function hexToBytes(h) { return new Uint8Array(h.match(/.{2}/g).map(b => parseInt(b, 16))) }
+    function fmtBytes(n) { if (n >= 1073741824) return (n / 1073741824).toFixed(2) + ' GB'; if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB'; if (n >= 1024) return (n / 1024).toFixed(0) + ' KB'; return n + ' B' }
+    function titleCase(s) { return s.replace(/\b\w/g, c => c.toUpperCase()) }
+    function htmlEsc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+    function setP(pct, label) { progFill.style.width = pct + '%'; statusPct.textContent = pct + '%'; if (label) statusLabel.textContent = label }
+    function log(type, msg) { const d = document.createElement('div'); if (type === 'i') d.className = 'li'; else if (type === 'w') d.className = 'lw'; else if (type === 'e') d.className = 'le'; else if (type === 'd') d.className = 'ld'; d.textContent = msg; logBox.appendChild(d); logBox.scrollTop = logBox.scrollHeight }
+    function tick() { return new Promise(r => setTimeout(r, 0)) }
+    function copySnippet() { navigator.clipboard.writeText(codeSnippet.textContent).then(() => { const b = document.querySelector('.copy-btn'); b.textContent = '✓ Copied'; setTimeout(() => b.textContent = 'Copy', 2000) }) }
   </script>
 </body>
+
 </html>

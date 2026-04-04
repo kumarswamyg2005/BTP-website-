@@ -10,7 +10,9 @@
   <!-- Google Fonts: Syne (headings/body) + IBM Plex Mono (labels/code) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <!-- A-Frame WebXR for 360° VR viewing -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <!-- mpegts.js: required to play MPEG-2 TS (.ts) files in browser via MSE -->
@@ -19,7 +21,7 @@
 
 <body>
   <script>
-    window.addEventListener('error', function(event) {
+    window.addEventListener('error', function (event) {
       if (document.body) {
         document.body.innerHTML += '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#900;color:#fff;z-index:999999;padding:40px;font-family:monospace;font-size:16px;"><h1>CRITICAL ERROR:</h1><p>' + event.message + '</p><pre>' + (event.error ? event.error.stack : '') + '</pre></div>';
       }
