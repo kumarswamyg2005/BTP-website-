@@ -103,6 +103,10 @@ export default function VideoModal({ video, onClose }) {
   }
 
   async function handleDecryptAndPlay() {
+    if (!activeHeadset) {
+      toast('⛔ No headset connected. Register a headset to play.', 'error', 4000);
+      return;
+    }
     setPhase('decrypting');
     setBtnLabel('Initiating AES-256 Decryption…');
     setLoadError(false);
@@ -427,7 +431,7 @@ export default function VideoModal({ video, onClose }) {
             {/* Enterprise headset warning — only shown if trying to "stream", not preview */}
             {!hasHeadset && !isPlaying && (
               <div className="warn-box" style={{ marginBottom: 0 }}>
-                ℹ️ No headset registered — you can still preview locally.{' '}
+                ⛔ No headset connected — playback is disabled.{' '}
                 <button
                   className="link-btn"
                   onClick={() => { handleClose(); navigate('/headsets'); }}
@@ -442,7 +446,7 @@ export default function VideoModal({ video, onClose }) {
                 <button
                   className="btn btn-primary"
                   onClick={handleDecryptAndPlay}
-                  disabled={isDecrypting}
+                  disabled={isDecrypting || !hasHeadset}
                 >
                   {isDecrypting && <span className="spinner" style={{ width: 16, height: 16, marginRight: 6 }} />}
                   {btnLabel}
