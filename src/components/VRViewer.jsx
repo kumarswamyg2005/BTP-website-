@@ -5,49 +5,38 @@ import { useToast } from '../context/ToastContext.jsx';
 /*
   VRViewer — A-Frame 360° VR player
 
-  Portal strategy (React 18 StrictMode-safe):
-  ─────────────────────────────────────────────
-  - Portal div is created via useState initializer (once per instance).
-  - It is appended to body inside useEffect, and removed on cleanup.
-  - StrictMode runs effects twice: first cleanup removes it, second run
-    re-appends the SAME div instance → portal renders correctly both times.
-  - On close: a-scene is manually detached before onClose() so React's
-    reconciler never encounters A-Frame-owned nodes during unmount.
+  Portal strategy:
+  ─────────────────────────────────────────────────────────────
+  We use a MODULE-LEVEL singleton div as the portal target.
+  It is appended once when the module loads and never removed.
+  This sidesteps all React StrictMode / double-effect timing
+  issues entirely — there is no lifecycle to manage.
+
+  On close: a-scene is manually detached before onClose() fires
+  so React's reconciler never sees A-Frame-injected DOM nodes
+  during unmount (prevents "removeChild: not a child" crash).
 */
+
+// Created once when the module first loads — lives forever in body.
+// Safe: it's an empty div with no visual impact when VRViewer is unmounted.
+const VR_PORTAL_ROOT = (() => {
+  const el = document.createElement('div');
+  el.id = 'vr-portal-root';
+  document.body.appendChild(el);
+  return el;
+})();
+
 export default function VRViewer({ src, onClose }) {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(false);
   const [muted,   setMuted]   = useState(true);
-  const [attached, setAttached] = useState(false);
-
-  // Same div instance across all renders — created once in useState initializer
-  const [portalRoot] = useState(() => {
-    const el = document.createElement('div');
-    el.id = 'vr-portal-root';
-    return el;
-  });
 
   const sceneRef  = useRef(null);
   const videoRef  = useRef(null);
   const closedRef = useRef(false);
 
-  // Attach / detach portal root in effect so StrictMode re-attaches properly
   useEffect(() => {
-    document.body.appendChild(portalRoot);
-    setAttached(true);
-    return () => {
-      setAttached(false);
-      // Defer removal so React finishes unmounting the portal first
-      setTimeout(() => {
-        try { if (portalRoot.parentNode) portalRoot.parentNode.removeChild(portalRoot); } catch {}
-      }, 100);
-    };
-  }, [portalRoot]);
-
-  // A-Frame / video setup
-  useEffect(() => {
-    if (!attached) return;
     closedRef.current = false;
 
     const video = videoRef.current;
@@ -89,7 +78,7 @@ export default function VRViewer({ src, onClose }) {
         sphere.addEventListener('object3dset', bindTex, { once: true });
       }
 
-      toast('🥽 360° active! Tap 🔊 to unmute.', 'success', 6000);
+      toast('🥽 360° active! Tap 🔊 to unmute.', 'success', 5000);
     }
 
     function onSceneLoaded() { sceneReady = true; applyTexture(); }
@@ -113,8 +102,8 @@ export default function VRViewer({ src, onClose }) {
     }
     scene.addEventListener('enter-vr', onEnterVR);
     scene.addEventListener('exit-vr',  onExitVR);
-    video.addEventListener('canplay',  onCanPlay,     { once: true });
-    video.addEventListener('error',    onVideoError,  { once: true });
+    video.addEventListener('canplay',  onCanPlay,    { once: true });
+    video.addEventListener('error',    onVideoError, { once: true });
     video.load();
 
     return () => {
@@ -123,7 +112,7 @@ export default function VRViewer({ src, onClose }) {
       scene.removeEventListener('enter-vr', onEnterVR);
       scene.removeEventListener('exit-vr',  onExitVR);
     };
-  }, [src, toast, attached]);
+  }, [src, toast]);
 
   function handleClose() {
     closedRef.current = true;
@@ -133,8 +122,8 @@ export default function VRViewer({ src, onClose }) {
     if (video) { video.pause(); video.src = ''; video.load(); }
     try { if (scene?.is('vr-mode')) scene.exitVR(); } catch {}
 
-    // Detach a-scene from portal root before React unmounts —
-    // prevents "removeChild: not a child" from A-Frame-injected nodes
+    // Detach a-scene BEFORE React unmounts the portal — prevents
+    // "removeChild: not a child" from A-Frame-injected sibling nodes
     try {
       if (scene && scene.parentNode) scene.parentNode.removeChild(scene);
     } catch {}
@@ -150,8 +139,6 @@ export default function VRViewer({ src, onClose }) {
     video.play().catch(() => {});
     toast('🔊 Audio enabled.', 'success', 2000);
   }
-
-  if (!attached) return null;
 
   const content = (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#000' }}>
@@ -228,12 +215,12 @@ export default function VRViewer({ src, onClose }) {
         )}
 
         <div style={infoBoxStyle}>
-          <span style={{ fontSize: '1.1rem' }}>🥽</span>
+          <span style={{ fontSize: '1rem' }}>🥽</span>
           <div>
-            <div style={{ color: '#efefef', fontWeight: 700, marginBottom: 2, fontSize: '0.85rem', fontFamily: 'IBM Plex Mono,monospace' }}>
+            <div style={{ color: '#efefef', fontWeight: 700, marginBottom: 2, fontSize: '0.82rem', fontFamily: 'IBM Plex Mono,monospace' }}>
               Drag to look around &nbsp;·&nbsp; Click <strong style={{ color: '#c8ff00' }}>[⊙]</strong> for headset mode
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#666', fontFamily: 'IBM Plex Mono,monospace' }}>
+            <div style={{ fontSize: '0.72rem', color: '#555', fontFamily: 'IBM Plex Mono,monospace' }}>
               Head tracking active in VR mode
             </div>
           </div>
@@ -272,7 +259,7 @@ export default function VRViewer({ src, onClose }) {
     </div>
   );
 
-  return ReactDOM.createPortal(content, portalRoot);
+  return ReactDOM.createPortal(content, VR_PORTAL_ROOT);
 }
 
 const exitBtnStyle = {
