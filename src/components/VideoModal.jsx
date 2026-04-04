@@ -199,9 +199,9 @@ export default function VideoModal({ video, onClose }) {
 
     stopMatrix();
     setVideoSrc(src);
-    setPhase('playing');
+    setVrOpen(true);
+    setPhase('vr');
     setBtnLabel('⏹ Stop');
-    toast('▶ Playing. Click "View in 360° VR" to go immersive!', 'success', 6000);
 
     // ── Simulate synchronized broadcast to all registered headsets ──
     // (Project Objective 4: synchronized playback across multiple VR devices)
@@ -277,8 +277,8 @@ export default function VideoModal({ video, onClose }) {
               </>
             )}
 
-            {/* Actual video player — rendered when playing */}
-            {isPlaying && videoSrc && (
+            {/* Actual video player — only in flat mode, not while VR overlay is open */}
+            {phase === 'playing' && videoSrc && (
               <>
                 <WatermarkedPlayer
                   key={videoSrc}

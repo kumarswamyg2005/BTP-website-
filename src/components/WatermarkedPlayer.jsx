@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { drawWatermark, embedLSB } from '../utils/watermark.js';
+import { drawWatermark } from '../utils/watermark.js';
 
 /**
  * WatermarkedPlayer
@@ -20,9 +20,7 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
   const internalRef  = useRef(null);
   const videoRef     = externalRef || internalRef;
   const overlayRef   = useRef(null); // visual watermark canvas (pointer-events:none)
-  const stegoRef     = useRef(null); // offscreen canvas for LSB encoding
   const wmarkTimer   = useRef(null); // visual redraw interval
-  const stegoTimer   = useRef(null); // LSB embed interval
   const containerRef = useRef(null);
 
   // ── Resize canvas to match container ──────────────────────────────────
@@ -44,23 +42,6 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
       drawWatermark(overlayRef.current, userId);
     }
   }, [userId, syncCanvasSize]);
-
-  // ── Embed LSB into current video frame ───────────────────────────────
-  const embedFrame = useCallback(() => {
-    const video  = videoRef.current;
-    const canvas = stegoRef.current;
-    if (!video || !canvas || video.readyState < 2 || video.paused) return;
-
-    canvas.width  = video.videoWidth  || 640;
-    canvas.height = video.videoHeight || 360;
-
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    embedLSB(canvas, userId);
-    // Note: this writes the payload into the offscreen canvas. In a production
-    // system you would POST this canvas as a PNG to the server as forensic proof,
-    // or pipe it back into the video texture. Here it demonstrates the technique.
-  }, [userId, videoRef]);
 
   // ── Fullscreen resize ─────────────────────────────────────────────────
   useEffect(() => {
@@ -99,12 +80,8 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
     }
     scheduleNext();
 
-    // LSB embed every 5 seconds
-    stegoTimer.current = setInterval(embedFrame, 5000);
-
     return () => {
       clearTimeout(wmarkTimer.current);
-      clearInterval(stegoTimer.current);
     };
   }, [src, userId, redraw, embedFrame]);
 
@@ -135,8 +112,6 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
         }}
       />
 
-      {/* Offscreen canvas for LSB steganography — never displayed */}
-      <canvas ref={stegoRef} style={{ display: 'none' }} />
     </div>
   );
 }

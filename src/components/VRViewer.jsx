@@ -153,20 +153,17 @@ export default function VRViewer({ src, onClose }) {
           position: 'absolute', inset: 0, zIndex: 3,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          background: '#050811', gap: 20,
+          background: '#080808', gap: 16,
         }}>
           <div style={{
-            width: 56, height: 56,
-            border: '3px solid rgba(79,142,247,0.2)',
-            borderTopColor: '#4f8ef7',
+            width: 48, height: 48,
+            border: '2px solid rgba(200,255,0,0.15)',
+            borderTopColor: '#c8ff00',
             borderRadius: '50%',
             animation: 'spin 0.9s linear infinite',
           }} />
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem', fontFamily: 'Inter,sans-serif' }}>
-            Loading 360° video…
-          </p>
-          <p style={{ color: '#475569', fontSize: '0.8rem', fontFamily: 'Inter,sans-serif' }}>
-            On Meta Quest — open this URL in your Quest browser for full VR
+          <p style={{ color: '#efefef', fontSize: '0.88rem', fontFamily: 'IBM Plex Mono,monospace', letterSpacing: '0.05em' }}>
+            LOADING 360° VIEW…
           </p>
         </div>
       )}
@@ -180,7 +177,7 @@ export default function VRViewer({ src, onClose }) {
           background: '#050811', gap: 16,
         }}>
           <span style={{ fontSize: '3rem' }}>⚠️</span>
-          <p style={{ color: '#fca5a5', fontSize: '0.95rem', fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 340 }}>
+          <p style={{ color: '#fca5a5', fontSize: '0.9rem', fontFamily: 'IBM Plex Mono,monospace', textAlign: 'center', maxWidth: 340 }}>
             Could not load video. Check the file exists and is a valid format.
           </p>
           <button onClick={handleClose} style={exitBtnStyle}>← Back</button>
@@ -211,12 +208,12 @@ export default function VRViewer({ src, onClose }) {
         )}
 
         <div style={infoBoxStyle}>
-          <span style={{ color: '#4f8ef7', fontSize: '1.2rem' }}>🥽</span>
+          <span style={{ fontSize: '1.1rem' }}>🥽</span>
           <div>
-            <div style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 2, fontSize: '0.88rem' }}>
-              Drag to look around &nbsp;·&nbsp; Click <strong style={{ color: '#4f8ef7' }}>[⊙]</strong> for headset mode
+            <div style={{ color: '#efefef', fontWeight: 700, marginBottom: 2, fontSize: '0.85rem', fontFamily: 'IBM Plex Mono,monospace' }}>
+              Drag to look around &nbsp;·&nbsp; Click <strong style={{ color: '#c8ff00' }}>[⊙]</strong> for headset mode
             </div>
-            <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+            <div style={{ fontSize: '0.74rem', color: '#666', fontFamily: 'IBM Plex Mono,monospace' }}>
               Head tracking active in VR mode &nbsp;·&nbsp; Tap scene to unmute audio
             </div>
           </div>
@@ -254,21 +251,14 @@ export default function VRViewer({ src, onClose }) {
           position="0 0 0"
         >
           <a-cursor
-            color="#4f8ef7"
-            opacity="0.8"
+            color="#c8ff00"
+            opacity="0.7"
             raycaster="objects: .clickable"
             fuse="false"
             animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
           />
         </a-camera>
 
-        <a-entity
-          position="0 0 -3"
-          geometry="primitive: plane; width: 4; height: 0.7"
-          material="color: #050811; transparent: true; opacity: 0.85; shader: flat"
-          text="value: Look around to explore the 360° environment. Click [VR] to enter headset mode.; color: #4f8ef7; align: center; wrapCount: 48; width: 3.8"
-          animation="property: components.material.material.opacity; to: 0; delay: 6000; dur: 1500; easing: easeOutQuad"
-        />
       </a-scene>
 
       <style>{`
@@ -288,25 +278,27 @@ export default function VRViewer({ src, onClose }) {
 }
 
 const exitBtnStyle = {
-  background: 'rgba(79,142,247,0.15)',
-  border: '1px solid #4f8ef7',
-  color: '#4f8ef7',
-  fontFamily: 'Inter,sans-serif',
+  background: 'rgba(200,255,0,0.1)',
+  border: '1px solid rgba(200,255,0,0.4)',
+  color: '#c8ff00',
+  fontFamily: 'IBM Plex Mono,monospace',
   fontWeight: 700,
-  padding: '10px 22px',
-  borderRadius: 9,
+  padding: '9px 20px',
+  borderRadius: 3,
   cursor: 'pointer',
-  fontSize: '0.95rem',
-  minHeight: 44,
+  fontSize: '0.78rem',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  minHeight: 40,
 };
 
 const infoBoxStyle = {
-  background: 'rgba(5,8,17,0.88)',
-  border: '1px solid rgba(79,142,247,0.25)',
-  color: '#94a3b8',
-  fontFamily: 'Inter,sans-serif',
-  padding: '10px 16px',
-  borderRadius: 9,
+  background: 'rgba(8,8,8,0.85)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#9a9a9a',
+  fontFamily: 'IBM Plex Mono,monospace',
+  padding: '9px 14px',
+  borderRadius: 3,
   display: 'flex',
   alignItems: 'center',
   gap: 10,
