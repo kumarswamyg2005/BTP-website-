@@ -249,15 +249,7 @@ export default function VRViewer({ src, onClose }) {
           look-controls="enabled: true; reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: true"
           wasd-controls="enabled: false"
           position="0 0 0"
-        >
-          <a-cursor
-            color="#c8ff00"
-            opacity="0.7"
-            raycaster="objects: .clickable"
-            fuse="false"
-            animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
-          />
-        </a-camera>
+        />
 
       </a-scene>
 
