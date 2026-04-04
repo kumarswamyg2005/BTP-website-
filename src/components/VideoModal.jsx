@@ -315,12 +315,13 @@ export default function VideoModal({ video, onClose }) {
                     bottom: 14, left: '50%',
                     transform: 'translateX(-50%)',
                     zIndex: 20,
-                    background: 'linear-gradient(135deg,#4f8ef7,#7c5cfc)',
-                    border: 'none', borderRadius: 10,
-                    color: '#fff', fontFamily: 'var(--font)',
-                    fontWeight: 700, fontSize: '0.9rem',
+                    background: 'var(--accent)',
+                    border: 'none', borderRadius: 4,
+                    color: '#000', fontFamily: 'var(--mono)',
+                    fontWeight: 700, fontSize: '0.78rem',
                     padding: '10px 24px', cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(79,142,247,0.4)',
+                    letterSpacing: '0.05em', textTransform: 'uppercase',
+                    boxShadow: '0 4px 20px rgba(200,255,0,0.25)',
                     whiteSpace: 'nowrap',
                   }}
                 >

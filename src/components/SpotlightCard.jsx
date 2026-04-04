@@ -13,7 +13,7 @@ export default function SpotlightCard({ children, className = '', onClick, style
 
   const spotlightBg = useMotionTemplate`radial-gradient(
     500px circle at ${mouseX}px ${mouseY}px,
-    rgba(79, 142, 247, 0.13),
+    rgba(200, 255, 0, 0.07),
     transparent 70%
   )`;
 

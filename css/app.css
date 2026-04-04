@@ -10,14 +10,8 @@
   right: 0;
   height: var(--navbar-h);
   z-index: 500;
-  background: rgba(12, 14, 20, 0.88);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  background: #0d0d0d;
   border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  border-top: none;
-  border-left: none;
-  border-right: none;
 }
 .navbar-inner {
   display: flex;
@@ -32,48 +26,50 @@
   flex-shrink: 0;
 }
 .nav-logo {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+  display: block;
+  flex-shrink: 0;
+  mix-blend-mode: screen;    /* dissolves the dark logo background into the navbar */
+  filter: brightness(1.15);  /* slight boost so the headset pops */
 }
+
 .nav-brand-name {
-  font-size: 1.1rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--cyan), #fff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #ffffff;
 }
 
 .navbar-tabs {
   display: flex;
-  gap: 4px;
+  gap: 24px;
   flex: 1;
   justify-content: center;
+  align-items: stretch;
 }
 .nav-tab {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 8px 20px;
-  border-radius: var(--radius-xl);
   background: transparent;
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   transition: var(--transition);
   cursor: pointer;
-  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
 }
 .nav-tab:hover {
-  background: var(--cyan-dim);
   color: var(--text-primary);
 }
 .nav-tab.active {
-  background: var(--cyan-dim);
-  color: var(--cyan);
-  border-color: rgba(0, 212, 255, 0.2);
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
 }
 
 .navbar-right {
@@ -88,29 +84,32 @@
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  background: rgba(0, 212, 255, 0.05);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 99px;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   cursor: default;
 }
 .user-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: var(--transition);
-  box-shadow: 0 0 0 2px var(--border);
+  border: 1px solid var(--border);
 }
 .user-avatar:hover {
-  box-shadow: 0 0 0 2px var(--cyan);
+  border-color: var(--accent);
 }
 .user-avatar-wrap {
   position: relative;
@@ -122,8 +121,10 @@
   min-width: 200px;
   padding: 16px;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card), var(--shadow-glow-purple);
+  box-shadow: var(--shadow-card);
   z-index: 600;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   animation: fadeInUp 0.2s ease;
 }
 .user-menu-info {
@@ -134,7 +135,10 @@
   font-size: 0.95rem;
 }
 .user-menu-info span {
-  font-size: 0.78rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--text-secondary);
 }
 .video-lock-overlay span {
@@ -203,7 +207,8 @@
 }
 .tab-content.active {
   display: block;
-  animation: fadeIn 0.35s ease;
+  /* No animation here — React remounts the component on every route change,
+     which would replay the fadeIn from opacity:0 and cause the blank flash. */
 }
 
 /* Section descriptions */
@@ -217,15 +222,35 @@
 
 /* ── Hero Banner ── */
 .hero-banner {
-  min-height: 420px;
+  min-height: 500px;
   display: flex;
   align-items: center;
-  background:
-    linear-gradient(to right, rgba(5, 8, 17, 0.96) 40%, transparent 100%),
-    url("../assets/thumb1.png") center right / cover no-repeat;
-  padding: 60px 0;
+  margin-top: 2rem;
+  background: #080808;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  margin-left: 32px;
+  margin-right: 32px;
+  padding: 80px 60px;
   position: relative;
   overflow: hidden;
+}
+.hero-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 40% at 30% 50%, rgba(200,255,0,0.04) 0%, transparent 70%);
+  z-index: 1;
+}
+.hero-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  z-index: 2;
 }
 .hero-inner {
   display: flex;
@@ -233,25 +258,47 @@
   align-items: center;
   gap: 40px;
   flex-wrap: wrap;
+  width: 100%;
+  position: relative;
+  z-index: 3;
 }
 .hero-text {
-  max-width: 560px;
+  max-width: 600px;
 }
 .hero-badge {
-  margin-bottom: 18px;
+  margin-bottom: 24px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-badge-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--text-muted);
 }
 .hero-title {
-  font-size: 3rem;
-  font-weight: 900;
-  line-height: 1.1;
-  margin-bottom: 18px;
+  font-family: var(--font-heading);
+  font-size: 4.2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 24px;
 }
 .hero-desc {
   color: var(--text-secondary);
-  font-size: 1rem;
-  max-width: 480px;
-  line-height: 1.7;
-  margin-bottom: 28px;
+  font-size: 1.1rem;
+  max-width: 500px;
+  line-height: 1.6;
+  margin-bottom: 36px;
 }
 .hero-actions {
   display: flex;
@@ -265,25 +312,29 @@
   flex-shrink: 0;
 }
 .stat-card {
-  padding: 16px 24px;
-  text-align: center;
+  padding: 20px 24px;
   min-width: 130px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 .stat-value {
-  font-size: 1.6rem;
+  font-family: var(--font-heading);
   font-weight: 800;
-}
-.stat-value.cyan {
-  color: var(--cyan);
-}
-.stat-value.purple {
-  color: #a78bfa;
-  font-size: 1rem;
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  line-height: 1;
 }
 .stat-label {
-  font-size: 0.78rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.stat-card-accent {
+  border-left: 2px solid var(--accent);
 }
 
 /* Library toolbar */
@@ -313,9 +364,31 @@
 .search-input {
   padding-left: 36px;
   width: 220px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  transition: border-color var(--transition);
+}
+.search-input:focus {
+  border-color: var(--accent);
+  outline: none;
 }
 .filter-select {
   width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  transition: border-color var(--transition);
+}
+.filter-select:focus {
+  border-color: var(--accent);
+  outline: none;
 }
 
 /* Video Grid */
@@ -325,41 +398,17 @@
   gap: 22px;
 }
 .video-card {
-  background: var(--bg-card);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.18s ease;
   position: relative;
-  animation: fadeInUp 0.5s ease both;
-  transform-style: preserve-3d;
-  will-change: transform, box-shadow;
-}
-.video-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.06),
-    transparent 40%
-  );
-  opacity: 0;
-  transition: opacity 0.5s;
-  pointer-events: none;
-  z-index: 2;
-}
-.video-card:hover::before {
-  opacity: 1;
 }
 .video-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  border-color: var(--border-bright);
-  box-shadow:
-    0 15px 35px rgba(0, 0, 0, 0.5),
-    0 0 25px rgba(0, 212, 255, 0.15);
-  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  border-color: var(--border-hover);
 }
 .video-thumb-wrap {
   position: relative;
@@ -370,23 +419,19 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
-}
-.video-card:hover .video-thumb {
-  transform: scale(1.07);
+  transition: transform 0.18s ease;
 }
 .video-lock-badge {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(5, 8, 17, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--cyan);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 2px;
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -408,15 +453,21 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(0, 212, 255, 0.2);
-  border: 2px solid var(--cyan);
+  background: rgba(8, 8, 8, 0.7);
+  border: 2px solid var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
   backdrop-filter: blur(6px);
   transform: scale(0.8);
   transition: transform 0.3s ease;
+  color: var(--accent);
+}
+.play-btn-circle svg {
+  width: 22px;
+  height: 22px;
+  margin-left: 2px; /* optical centre: triangle path starts at x=8, ends x=19 in 24px viewbox */
+  display: block;
 }
 .video-card:hover .play-btn-circle {
   transform: scale(1);
@@ -426,8 +477,10 @@
   padding: 16px 18px 18px;
 }
 .video-card-title {
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 600;
   margin-bottom: 6px;
   line-height: 1.3;
 }
@@ -453,13 +506,9 @@
   justify-content: space-between;
   align-items: center;
 }
-.video-card-duration {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.video-card-duration, .video-card-resolution {
   font-family: var(--mono);
-}
-.video-card-resolution {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
 }
 
@@ -487,6 +536,8 @@
   padding: 28px 32px;
   position: relative;
   overflow: hidden;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .headset-scanner-card::after {
   content: "";
@@ -540,7 +591,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(0, 212, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   animation: radarPulse 2s ease-out infinite;
 }
 @keyframes radarPulse {
@@ -566,10 +617,10 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--cyan);
+  background: #c8ff00;
   top: 20%;
   left: 65%;
-  box-shadow: 0 0 8px var(--cyan);
+  box-shadow: 0 0 8px #c8ff00;
   animation: blipBlink 1s ease-in-out infinite;
 }
 @keyframes blipBlink {
@@ -692,6 +743,8 @@
 /* ── Cloud styles ── */
 .cloud-status-card {
   padding: 28px 32px;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .cloud-status-header {
   display: flex;
@@ -769,6 +822,28 @@
   color: var(--text-secondary);
 }
 
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.toggle-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.9rem;
+  color: #efefef;
+}
+.toggle-sublabel {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: #555555;
+  margin-top: 2px;
+}
+
 /* Toggle */
 .toggle {
   position: relative;
@@ -803,12 +878,12 @@
   transition: var(--transition);
 }
 .toggle input:checked + .toggle-slider {
-  background: rgba(0, 212, 255, 0.2);
-  border-color: var(--cyan);
+  background: rgba(200, 255, 0, 0.2);
+  border-color: var(--accent);
 }
 .toggle input:checked + .toggle-slider::before {
   transform: translateX(20px);
-  background: var(--cyan);
+  background: var(--accent);
 }
 .toggle input:disabled + .toggle-slider {
   opacity: 0.6;
@@ -825,8 +900,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
   transition: var(--transition);
 }
@@ -988,5 +1063,114 @@
   .cloud-status-id {
     margin-left: 0;
     text-align: left;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   VR / COARSE POINTER — App UI overrides
+   Larger tap targets throughout the main app.
+══════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  /* Taller navbar so it's easier to tap */
+  .navbar {
+    height: 72px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(12, 14, 20, 0.97);
+  }
+
+  /* Bigger nav tabs */
+  .nav-tab {
+    padding: 12px 22px;
+    font-size: 0.95rem;
+    min-height: 52px;
+  }
+
+  /* Bigger user avatar */
+  .user-avatar {
+    width: 46px;
+    height: 46px;
+    font-size: 1.1rem;
+  }
+
+  /* Headset pill larger */
+  .headset-status-pill {
+    padding: 8px 16px;
+    font-size: 0.88rem;
+  }
+
+  /* Video cards — no hover lift (no hover in VR), use solid focus instead */
+  .video-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Bigger play overlay so it's easy to tap */
+  .play-btn-circle {
+    width: 68px;
+    height: 68px;
+    font-size: 1.6rem;
+    opacity: 1;
+    transform: scale(1);
+  }
+  .video-play-overlay {
+    opacity: 1;
+    background: rgba(5, 8, 17, 0.35);
+  }
+
+  /* Bigger modal buttons */
+  .modal-close {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  /* Bigger form inputs in modals */
+  .form-input {
+    height: 52px;
+    font-size: 0.95rem;
+  }
+
+  /* All buttons at least 52px tall */
+  .btn {
+    min-height: 52px;
+    font-size: 0.95rem;
+    padding: 12px 22px;
+  }
+  .btn-sm {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  /* Glass cards — remove backdrop-filter for GPU performance */
+  .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #13161f;
+  }
+
+  /* Bigger scan button */
+  #scan-btn, .btn-primary {
+    min-height: 52px;
+  }
+
+  /* Toggle switches bigger */
+  .toggle {
+    width: 54px;
+    height: 30px;
+  }
+  .toggle-slider::before {
+    width: 20px;
+    height: 20px;
+    bottom: 4px;
+    left: 4px;
+  }
+  .toggle input:checked + .toggle-slider::before {
+    transform: translateX(24px);
+  }
+
+  /* Registered headset actions — bigger buttons */
+  .reg-actions .btn {
+    min-height: 44px;
   }
 }

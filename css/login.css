@@ -16,36 +16,10 @@
   display: flex;
   flex-direction: column;
   padding: 44px 56px;
-  background: #0d0f19;
-  border-right: 1px solid rgba(255, 255, 255, 0.055);
+  background: var(--bg-base);
+  border-right: 1px solid var(--border);
   position: relative;
   overflow: hidden;
-}
-
-/* Top-left blue glow */
-.login-left::before {
-  content: "";
-  position: absolute;
-  width: 560px;
-  height: 560px;
-  top: -180px;
-  left: -120px;
-  background: radial-gradient(circle, rgba(79, 142, 247, 0.13) 0%, transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Bottom-right violet glow */
-.login-left::after {
-  content: "";
-  position: absolute;
-  width: 480px;
-  height: 480px;
-  bottom: -100px;
-  right: -100px;
-  background: radial-gradient(circle, rgba(124, 92, 252, 0.11) 0%, transparent 65%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .login-left > * {
@@ -104,34 +78,14 @@
   opacity: 0.7;
 }
 
-/* Particle badge */
-.particle-hint-badge {
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: rgba(79, 142, 247, 0.07);
-  border: 1px solid rgba(79, 142, 247, 0.18);
-  border-radius: 100px;
-  padding: 4px 12px;
-  margin-bottom: 12px;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* Particle canvas */
-.particle-canvas {
-  display: block;
-  width: 100%;
-  height: 255px;
-  margin-bottom: 16px;
-  cursor: default;
-  border-radius: 10px;
+/* Static wordmark (replaces particle canvas) */
+.static-wordmark {
+  font-family: var(--font-heading);
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  margin-bottom: 24px;
 }
 
 /* Description below canvas */
@@ -179,13 +133,14 @@
 }
 
 .login-feature-item:hover .login-feature-icon {
-  background: rgba(79, 142, 247, 0.14);
-  border-color: rgba(79, 142, 247, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .login-feature-text strong {
   display: block;
-  font-size: 0.82rem;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 2px;
@@ -193,7 +148,8 @@
 }
 
 .login-feature-text span {
-  font-size: 0.74rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -246,25 +202,15 @@
   position: relative;
 }
 
-/* Subtle center glow on right side */
-.login-right::before {
-  content: "";
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(79, 142, 247, 0.04) 0%, transparent 70%);
-  pointer-events: none;
-}
-
 .login-card {
   width: 100%;
   max-width: 390px;
   position: relative;
   z-index: 1;
-  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 40px 36px;
 }
 
 /* ── Card header ──────────────────────────────────────────── */
@@ -273,9 +219,9 @@
 }
 
 .login-card-header h2 {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.045em;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
   line-height: 1.05;
@@ -326,10 +272,11 @@
 
 /* Labels */
 .login-form .form-label {
-  font-size: 0.78rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
   font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -358,22 +305,16 @@
   padding-left: 42px;
   padding-right: 44px;
   height: 48px;
-  font-size: 0.9rem;
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(255, 255, 255, 0.08);
-  border-radius: 11px;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.input-icon-wrap .form-input:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.13);
-  background: rgba(255, 255, 255, 0.05);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  transition: border-color var(--transition);
 }
 
 .input-icon-wrap .form-input:focus {
-  background: rgba(79, 142, 247, 0.05);
-  border-color: rgba(79, 142, 247, 0.45);
-  box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.11);
+  border-color: var(--accent);
 }
 
 .input-action {
@@ -446,34 +387,22 @@
 .login-submit-btn {
   width: 100%;
   height: 48px;
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #4f8ef7 0%, #6a7ef8 100%);
+  background: var(--accent);
   border: none;
-  border-radius: 11px;
-  color: #fff;
-  letter-spacing: -0.01em;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.15) inset,
-    0 4px 16px rgba(79, 142, 247, 0.28);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  border-radius: 3px;
+  color: #000;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background var(--transition);
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  filter: brightness(1.06);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.15) inset,
-    0 8px 24px rgba(79, 142, 247, 0.38);
-}
-
-.login-submit-btn:active:not(:disabled) {
-  transform: translateY(0px);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.1) inset,
-    0 2px 8px rgba(79, 142, 247, 0.2);
+  background: var(--accent-hover);
 }
 
 .login-submit-btn:disabled {
@@ -494,10 +423,7 @@
 
 /* gradient-text helper */
 .gradient-text {
-  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent);
 }
 
 /* ── Shake animation for failed login ─────────────────────── */
@@ -525,17 +451,41 @@
   }
 }
 
+/* VR headset / tablet — stack panels, keep branding visible */
 @media (max-width: 960px) {
   .login-wrapper {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
+
+  /* Show a compact top-banner instead of hiding the left panel */
   .login-left {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 28px 28px;
+    min-height: unset;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Keep brand + particle, collapse everything else */
+  .login-hero {
+    padding: 16px 0 0;
+  }
+
+  .login-feature-list,
+  .login-eyebrow,
+  .login-left-footer {
     display: none;
   }
+
+  .login-hero-desc {
+    display: none;
+  }
+
   .login-right {
-    padding: 48px 24px;
+    padding: 32px 24px 48px;
     justify-content: flex-start;
-    padding-top: 64px;
   }
   .login-card {
     max-width: 100%;
@@ -548,5 +498,55 @@
   }
   .login-card-header h2 {
     font-size: 1.7rem;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   VR / COARSE POINTER OVERRIDES
+   Applies when input is a controller ray, touch, etc.
+   Bigger tap targets, no backdrop-filter, larger text.
+══════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  /* Bigger inputs — easier to select with controller ray */
+  .input-icon-wrap .form-input {
+    height: 56px;
+    font-size: 0.97rem;
+  }
+
+  /* Bigger submit button */
+  .login-submit-btn {
+    height: 56px;
+    font-size: 1rem;
+  }
+
+  /* Bigger checkbox + label tap area */
+  .checkbox-wrap {
+    padding: 6px 0;
+    gap: 12px;
+  }
+  .checkbox-wrap input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+  .checkbox-wrap .checkbox-label {
+    font-size: 0.9rem;
+  }
+
+  /* Bigger forgot password link */
+  .link-subtle {
+    font-size: 0.9rem;
+    padding: 4px 0;
+  }
+
+  /* Larger card heading */
+  .login-card-header h2 {
+    font-size: 1.75rem;
+  }
+
+  /* Remove backdrop-filter — not needed, saves GPU */
+  .login-left::before,
+  .login-left::after,
+  .login-right::before {
+    display: none;
   }
 }

@@ -95,9 +95,9 @@ export default function UploadModal({ onClose }) {
       <div className="modal-box">
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">📤 Upload Video</h2>
+            <h2 className="modal-title">📤 Upload &amp; Encrypt Video</h2>
             <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-              {role === 'admin' ? 'Admin' : 'Editor'} access &bull; Stored in session memory
+              {role === 'admin' ? 'Admin' : 'Editor'} access &bull; Video encrypted in-browser before storage
             </p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -152,6 +152,17 @@ export default function UploadModal({ onClose }) {
           </div>
 
           <div className="form-group">
+            <label className="form-label">Encryption</label>
+            <input
+              className="form-input"
+              type="text"
+              value="AES-256-CTR (locked)"
+              readOnly
+              style={{ color: 'var(--text-muted)', cursor: 'default' }}
+            />
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Description</label>
             <textarea
               className="form-input"
@@ -160,6 +171,20 @@ export default function UploadModal({ onClose }) {
               onChange={e => setDesc(e.target.value)}
               placeholder="Brief description of this video content..."
             />
+          </div>
+
+          <div style={{
+            padding: '12px 16px',
+            background: 'rgba(200, 255, 0, 0.05)',
+            border: '1px solid rgba(200, 255, 0, 0.2)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.83rem',
+            color: 'var(--accent)',
+            marginBottom: 16,
+            lineHeight: 1.5,
+          }}>
+            🔒 Video is encrypted with AES-256-CTR inside your browser before being stored.
+            Raw bytes never leave your device unencrypted and are never written to disk.
           </div>
 
           {loading && (
@@ -184,7 +209,7 @@ export default function UploadModal({ onClose }) {
             disabled={loading}
           >
             {loading && <span className="spinner" style={{ width: 16, height: 16 }} />}
-            {loading ? 'Loading…' : '📤 Add to Library'}
+            {loading ? 'Encrypting…' : '🔒 Encrypt & Upload'}
           </button>
         </form>
       </div>

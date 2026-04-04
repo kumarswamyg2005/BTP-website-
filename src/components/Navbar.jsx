@@ -46,21 +46,21 @@ export default function Navbar() {
             className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
             role="tab"
           >
-            <span>🏠</span> Home
+            Home
           </NavLink>
           <NavLink
             to="/headsets"
             className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
             role="tab"
           >
-            <span>🥽</span> Headsets
+            Headsets
           </NavLink>
           <NavLink
             to="/cloud"
             className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
             role="tab"
           >
-            <span>☁️</span> Cloud
+            Cloud
           </NavLink>
           {role === 'admin' && (
             <NavLink
@@ -68,7 +68,7 @@ export default function Navbar() {
               className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
               role="tab"
             >
-              <span>⚙️</span> Admin
+              Admin
             </NavLink>
           )}
         </div>

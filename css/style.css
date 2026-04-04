@@ -63,13 +63,13 @@
   --navbar-h: 64px;
 
   /* ── App-section aliases (used in app.css) ── */
-  --cyan:              #4f8ef7;
-  --cyan-dim:          rgba(79, 142, 247, 0.09);
-  --purple:            #7c5cfc;
-  --bg-card:           #13161f;
-  --bg-card-hover:     #181c28;
-  --bg-deep:           #07080f;
-  --border-bright:     rgba(255, 255, 255, 0.1);
+  --cyan: #4f8ef7;
+  --cyan-dim: rgba(79, 142, 247, 0.09);
+  --purple: #7c5cfc;
+  --bg-card: #13161f;
+  --bg-card-hover: #181c28;
+  --bg-deep: #07080f;
+  --border-bright: rgba(255, 255, 255, 0.1);
   --shadow-glow-purple: 0 4px 20px rgba(124, 92, 252, 0.14);
 }
 
@@ -94,6 +94,41 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Visibility safety net */
+body {
+  background: #080808;
+  color: #efefef;
+}
+
+p,
+span,
+label,
+li,
+td,
+th,
+div {
+  color: inherit;
+}
+
+section,
+article,
+aside,
+main {
+  color: #efefef;
+}
+
+input,
+select,
+textarea {
+  background: #1a1a1a;
+  color: #efefef;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+input::placeholder {
+  color: #444444;
 }
 a {
   text-decoration: none;

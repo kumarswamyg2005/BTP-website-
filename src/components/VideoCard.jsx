@@ -34,7 +34,7 @@ export default function VideoCard({ video, index, onClick }) {
       <div className="video-card-body">
         <h3 className="video-card-title">{video.title}</h3>
         <div className="video-card-meta">
-          <span className="badge badge-purple">{capitalize(video.category)}</span>
+          <span className="badge">{capitalize(video.category)}</span>
           <span className="badge badge-cyan">🥽 VR</span>
           {video.binFileName && (
             <span className="badge badge-gold" title={video.binFileName}>

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import ParticleCanvas from '../components/ParticleCanvas.jsx';
 import PageTransition from '../components/PageTransition.jsx';
 
 function sleep(ms) {
@@ -20,7 +19,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [shake, setShake] = useState(false);
-  const isCoarse = window.matchMedia('(pointer: coarse)').matches;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -65,10 +63,7 @@ export default function LoginPage() {
               Secure VR Platform
             </div>
 
-            <div className="particle-hint-badge">
-              {isCoarse ? '✦ LIVE ANIMATION' : '✦ HOVER TO INTERACT'}
-            </div>
-            <ParticleCanvas />
+            <div className="static-wordmark">UNITY STREAM</div>
 
             <p className="login-hero-desc">
               Next-generation encrypted VR content delivery with intelligent headset management
@@ -200,7 +195,7 @@ export default function LoginPage() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
-                  { id: 'admin', pass: 'Password', role: 'Admin', color: '#4f8ef7' },
+                  { id: 'admin', pass: 'Password', role: 'Admin', color: '#ff4444' },
                   { id: 'editor', pass: 'Editor@2025!', role: 'Editor', color: '#a78bfa' },
                   { id: 'user01', pass: 'User@2025!', role: 'User', color: '#22c55e' },
                 ].map(c => (
