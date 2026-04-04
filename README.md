@@ -26,7 +26,7 @@ Live demo → **[btp-website-sage.vercel.app](https://btp-website-sage.vercel.ap
 - **Admin Video Upload** — Admin/Editor users can upload any video format (MP4, MKV, MOV, WEBM, TS, AVI); the file is read locally and added to the session library instantly
 - **Invisible Watermarking** — Every video playback session embeds a per-user, per-session invisible watermark for forensic leak tracing (`WatermarkedPlayer.jsx`)
 - **Content Protection** — Right-click disabled, screenshot shortcuts blocked, download controls removed, drag-to-save disabled on all media
-- **Video Encryptor Utility** — Standalone `encrypt-video.html` tool to encrypt any video file into an AES-256-CTR `.bin` ready for the player
+- **Video Encryptor Utility** — Encrypt any video file into an AES-256-CTR `.bin` ready for the player using the WebCrypto API
 
 ---
 
@@ -92,13 +92,10 @@ npm run build
 
 ## Admin: Adding Encrypted Videos
 
-Use the included **`encrypt-video.html`** utility (open directly in any browser — no server needed):
-
-1. Drop your video file (MP4, MKV, MOV, WEBM, etc.)
-2. Click **Encrypt & Download .bin** — outputs `yourfile_encrypted.bin`
-3. Place the `.bin` file in the `assets/` folder
-4. Copy the generated code snippet into `src/data/videos.js`
-5. Run `npm run dev` — the video appears in the library and decrypts on play
+1. Use the WebCrypto AES-256-CTR encryptor to encrypt your video file — outputs `yourfile_encrypted.bin`
+2. Place the `.bin` file in the `assets/` folder
+3. Copy the generated code snippet into `src/data/videos.js`
+4. Run `npm run dev` — the video appears in the library and decrypts on play
 
 ---
 
@@ -129,7 +126,6 @@ Use the included **`encrypt-video.html`** utility (open directly in any browser 
 │   │   └── ToastContext.jsx      # Global toast notification system
 │   └── data/
 │       └── videos.js             # Demo video catalogue
-├── encrypt-video.html            # Standalone AES-256-CTR video encryptor utility
 ├── vercel.json                   # SPA routing rewrite rule for Vercel
 └── vite.config.js
 ```
@@ -150,4 +146,4 @@ Use the included **`encrypt-video.html`** utility (open directly in any browser 
 
 The project is deployed on **Vercel** with automatic redeployment on every push to `main`.
 
-See [DEPLOY.md](DEPLOY.md) for full deployment instructions.
+The project deploys automatically on every push to `main` via Vercel's GitHub integration. No manual steps required.
