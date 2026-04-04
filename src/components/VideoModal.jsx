@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import VRViewer from './VRViewer.jsx';
+import WatermarkedPlayer from './WatermarkedPlayer.jsx';
 
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -54,7 +55,7 @@ function runMatrixAnimation(canvas, wrap) {
 }
 
 export default function VideoModal({ video, onClose }) {
-  const { activeHeadset, registeredHeadsets } = useAuth();
+  const { activeHeadset, registeredHeadsets, username } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -255,7 +256,7 @@ export default function VideoModal({ video, onClose }) {
             <div>
               <h2 className="modal-title">{video.title}</h2>
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <span className="badge badge-purple">{capitalize(video.category)}</span>
+                <span className="badge">{capitalize(video.category)}</span>
                 <span className="badge badge-cyan">🔐 Encrypted</span>
               </div>
             </div>
@@ -279,10 +280,11 @@ export default function VideoModal({ video, onClose }) {
             {/* Actual video player — rendered when playing */}
             {isPlaying && videoSrc && (
               <>
-                <video
-                  ref={videoRef}
+                <WatermarkedPlayer
                   key={videoSrc}
                   src={videoSrc}
+                  userId={username || 'unknown'}
+                  videoRef={videoRef}
                   autoPlay
                   loop
                   controls
@@ -292,19 +294,11 @@ export default function VideoModal({ video, onClose }) {
                   onContextMenu={e => e.preventDefault()}
                   onError={() => {
                     if (video.srcFallback && videoSrc !== video.srcFallback) {
-                      // CDN failed — fall back to local asset
                       toast('CDN unavailable, switching to local asset…', 'info', 3000);
                       setVideoSrc(video.srcFallback);
                     } else {
                       setLoadError(true);
                     }
-                  }}
-                  style={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'contain',
-                    background: '#000',
-                    zIndex: 10,
                   }}
                 />
                 {/* VR launch button overlay */}

@@ -937,6 +937,11 @@
   margin-bottom: 20px;
   background: var(--bg-deep);
 }
+/* WatermarkedPlayer needs its outer div to fill the preview area */
+.video-preview-area > div {
+  position: absolute;
+  inset: 0;
+}
 .video-preview-area img {
   width: 100%;
   height: 100%;
