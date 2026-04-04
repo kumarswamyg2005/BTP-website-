@@ -2,6 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useToast } from '../context/ToastContext.jsx';
 
+// A-Frame injects extra canvas/div nodes into whatever element the portal
+// targets. When React later tries to unmount the portal it calls removeChild
+// on those A-Frame-owned nodes and throws "not a child of this node".
+// Fix: render the portal into a dedicated div we create ourselves and keep
+// outside React's reconciler. We create it once, append it to body, and
+// remove it *after* React has already unmounted by deferring the removal.
+function createPortalRoot() {
+  const el = document.createElement('div');
+  el.id = 'vr-portal-root';
+  document.body.appendChild(el);
+  return el;
+}
+
 /*
   VRViewer — A-Frame 360° VR player
   ────────────────────────────────────────────────────────────
@@ -21,9 +34,24 @@ export default function VRViewer({ src, onClose }) {
   const [error,   setError]   = useState(false);
   const [muted,   setMuted]   = useState(true);
 
-  const sceneRef  = useRef(null);
-  const videoRef  = useRef(null);
-  const closedRef = useRef(false);
+  const sceneRef      = useRef(null);
+  const videoRef      = useRef(null);
+  const closedRef     = useRef(false);
+  const portalRootRef = useRef(null);
+
+  // Create the portal root once on mount, destroy after unmount
+  if (!portalRootRef.current) {
+    portalRootRef.current = createPortalRoot();
+  }
+  useEffect(() => {
+    const root = portalRootRef.current;
+    return () => {
+      // Defer removal so React finishes its own unmount first
+      setTimeout(() => {
+        try { if (root && root.parentNode) root.parentNode.removeChild(root); } catch {}
+      }, 0);
+    };
+  }, []);
 
   useEffect(() => {
     closedRef.current = false;
@@ -118,8 +146,24 @@ export default function VRViewer({ src, onClose }) {
     closedRef.current = true;
     const video = videoRef.current;
     const scene = sceneRef.current;
-    try { if (scene?.is('vr-mode')) scene.exitVR(); } catch {}
+
+    // Stop video first
     if (video) { video.pause(); video.src = ''; video.load(); }
+
+    // Exit VR mode if active
+    try { if (scene?.is('vr-mode')) scene.exitVR(); } catch {}
+
+    // ── Key fix: physically detach the a-scene element from the portal root
+    // BEFORE React's reconciler walks the tree. A-Frame appends extra canvas
+    // and overlay nodes directly to the portal root — if React sees those
+    // foreign nodes during unmount it throws "not a child of this node".
+    // By removing the scene element first we leave only React-owned nodes.
+    try {
+      if (scene && scene.parentNode) {
+        scene.parentNode.removeChild(scene);
+      }
+    } catch {}
+
     onClose();
   }
 
@@ -266,7 +310,7 @@ export default function VRViewer({ src, onClose }) {
     </div>
   );
 
-  return ReactDOM.createPortal(content, document.body);
+  return ReactDOM.createPortal(content, portalRootRef.current);
 }
 
 const exitBtnStyle = {
