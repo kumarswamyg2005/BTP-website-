@@ -3,3 +3,6 @@ assets/cable_car_encrypted.bin
 node_modules/
 dist/
 .claude/
+.DS_Store
+likethis/
+likethis_code/
