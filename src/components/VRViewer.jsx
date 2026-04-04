@@ -2,58 +2,52 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useToast } from '../context/ToastContext.jsx';
 
-// A-Frame injects extra canvas/div nodes into whatever element the portal
-// targets. When React later tries to unmount the portal it calls removeChild
-// on those A-Frame-owned nodes and throws "not a child of this node".
-// Fix: render the portal into a dedicated div we create ourselves and keep
-// outside React's reconciler. We create it once, append it to body, and
-// remove it *after* React has already unmounted by deferring the removal.
-function createPortalRoot() {
-  const el = document.createElement('div');
-  el.id = 'vr-portal-root';
-  document.body.appendChild(el);
-  return el;
-}
-
 /*
   VRViewer — A-Frame 360° VR player
-  ────────────────────────────────────────────────────────────
-  Root cause of black screen: A-Frame's <a-assets> system marks
-  the video "loaded" before canplay fires, so the sphere gets an
-  empty texture. Fix: remove <a-assets> entirely and apply the
-  texture directly via THREE.VideoTexture after BOTH the scene
-  and the video are ready. This is guaranteed to work regardless
-  of load order.
 
-  Portal: renders to document.body to escape framer-motion
-  stacking contexts (prevents navbar from bleeding through).
+  Portal strategy (React 18 StrictMode-safe):
+  ─────────────────────────────────────────────
+  - Portal div is created via useState initializer (once per instance).
+  - It is appended to body inside useEffect, and removed on cleanup.
+  - StrictMode runs effects twice: first cleanup removes it, second run
+    re-appends the SAME div instance → portal renders correctly both times.
+  - On close: a-scene is manually detached before onClose() so React's
+    reconciler never encounters A-Frame-owned nodes during unmount.
 */
 export default function VRViewer({ src, onClose }) {
-  const toast     = useToast();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(false);
   const [muted,   setMuted]   = useState(true);
+  const [attached, setAttached] = useState(false);
 
-  const sceneRef      = useRef(null);
-  const videoRef      = useRef(null);
-  const closedRef     = useRef(false);
-  const portalRootRef = useRef(null);
+  // Same div instance across all renders — created once in useState initializer
+  const [portalRoot] = useState(() => {
+    const el = document.createElement('div');
+    el.id = 'vr-portal-root';
+    return el;
+  });
 
-  // Create the portal root once on mount, destroy after unmount
-  if (!portalRootRef.current) {
-    portalRootRef.current = createPortalRoot();
-  }
+  const sceneRef  = useRef(null);
+  const videoRef  = useRef(null);
+  const closedRef = useRef(false);
+
+  // Attach / detach portal root in effect so StrictMode re-attaches properly
   useEffect(() => {
-    const root = portalRootRef.current;
+    document.body.appendChild(portalRoot);
+    setAttached(true);
     return () => {
-      // Defer removal so React finishes its own unmount first
+      setAttached(false);
+      // Defer removal so React finishes unmounting the portal first
       setTimeout(() => {
-        try { if (root && root.parentNode) root.parentNode.removeChild(root); } catch {}
-      }, 0);
+        try { if (portalRoot.parentNode) portalRoot.parentNode.removeChild(portalRoot); } catch {}
+      }, 100);
     };
-  }, []);
+  }, [portalRoot]);
 
+  // A-Frame / video setup
   useEffect(() => {
+    if (!attached) return;
     closedRef.current = false;
 
     const video = videoRef.current;
@@ -67,7 +61,6 @@ export default function VRViewer({ src, onClose }) {
     let sceneReady = false;
     let videoReady = false;
 
-    // Called when BOTH are ready — applies THREE.VideoTexture directly
     function applyTexture() {
       if (!sceneReady || !videoReady || closedRef.current) return;
 
@@ -80,36 +73,28 @@ export default function VRViewer({ src, onClose }) {
       function bindTex() {
         const mesh = sphere.getObject3D('mesh');
         if (!mesh) return;
-
         const THREE = window.THREE;
-        const tex   = new THREE.VideoTexture(video);
+        const tex = new THREE.VideoTexture(video);
         tex.minFilter = THREE.LinearFilter;
         tex.magFilter = THREE.LinearFilter;
         tex.format    = THREE.RGBAFormat;
-
-        mesh.material.map          = tex;
-        mesh.material.needsUpdate  = true;
-        mesh.material.side         = THREE.BackSide; // view from inside sphere
+        mesh.material.map         = tex;
+        mesh.material.needsUpdate = true;
+        mesh.material.side        = THREE.BackSide;
       }
 
-      // Sphere mesh may not exist yet if scene just loaded
       if (sphere.getObject3D('mesh')) {
         bindTex();
       } else {
         sphere.addEventListener('object3dset', bindTex, { once: true });
       }
 
-      toast('🥽 360° active! Tap 🔊 to unmute. Click [⊙] for headset mode.', 'success', 9000);
+      toast('🥽 360° active! Tap 🔊 to unmute.', 'success', 6000);
     }
 
     function onSceneLoaded() { sceneReady = true; applyTexture(); }
     function onCanPlay()     { videoReady = true; applyTexture(); }
-
-    function onVideoError() {
-      setLoading(false);
-      setError(true);
-      toast('Could not load video in VR viewer.', 'error');
-    }
+    function onVideoError()  { setLoading(false); setError(true); }
 
     function onEnterVR() {
       const ov = document.getElementById('vr-exit-overlay');
@@ -121,47 +106,37 @@ export default function VRViewer({ src, onClose }) {
       if (ov) ov.style.opacity = '1';
     }
 
-    // Scene may already be loaded if A-Frame initialized synchronously
     if (scene.hasLoaded) {
       sceneReady = true;
     } else {
       scene.addEventListener('loaded', onSceneLoaded, { once: true });
     }
-
     scene.addEventListener('enter-vr', onEnterVR);
     scene.addEventListener('exit-vr',  onExitVR);
-    video.addEventListener('canplay',  onCanPlay, { once: true });
-    video.addEventListener('error',    onVideoError, { once: true });
+    video.addEventListener('canplay',  onCanPlay,     { once: true });
+    video.addEventListener('error',    onVideoError,  { once: true });
     video.load();
 
     return () => {
       closedRef.current = true;
-      scene.removeEventListener('loaded',    onSceneLoaded);
-      scene.removeEventListener('enter-vr',  onEnterVR);
-      scene.removeEventListener('exit-vr',   onExitVR);
+      scene.removeEventListener('loaded',   onSceneLoaded);
+      scene.removeEventListener('enter-vr', onEnterVR);
+      scene.removeEventListener('exit-vr',  onExitVR);
     };
-  }, [src, toast]);
+  }, [src, toast, attached]);
 
   function handleClose() {
     closedRef.current = true;
     const video = videoRef.current;
     const scene = sceneRef.current;
 
-    // Stop video first
     if (video) { video.pause(); video.src = ''; video.load(); }
-
-    // Exit VR mode if active
     try { if (scene?.is('vr-mode')) scene.exitVR(); } catch {}
 
-    // ── Key fix: physically detach the a-scene element from the portal root
-    // BEFORE React's reconciler walks the tree. A-Frame appends extra canvas
-    // and overlay nodes directly to the portal root — if React sees those
-    // foreign nodes during unmount it throws "not a child of this node".
-    // By removing the scene element first we leave only React-owned nodes.
+    // Detach a-scene from portal root before React unmounts —
+    // prevents "removeChild: not a child" from A-Frame-injected nodes
     try {
-      if (scene && scene.parentNode) {
-        scene.parentNode.removeChild(scene);
-      }
+      if (scene && scene.parentNode) scene.parentNode.removeChild(scene);
     } catch {}
 
     onClose();
@@ -176,10 +151,11 @@ export default function VRViewer({ src, onClose }) {
     toast('🔊 Audio enabled.', 'success', 2000);
   }
 
+  if (!attached) return null;
+
   const content = (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#000' }}>
 
-      {/* Hidden video element — outside A-Frame so we control it directly */}
       <video
         ref={videoRef}
         src={src}
@@ -218,7 +194,7 @@ export default function VRViewer({ src, onClose }) {
           position: 'absolute', inset: 0, zIndex: 3,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          background: '#050811', gap: 16,
+          background: '#080808', gap: 16,
         }}>
           <span style={{ fontSize: '3rem' }}>⚠️</span>
           <p style={{ color: '#fca5a5', fontSize: '0.9rem', fontFamily: 'IBM Plex Mono,monospace', textAlign: 'center', maxWidth: 340 }}>
@@ -228,7 +204,7 @@ export default function VRViewer({ src, onClose }) {
         </div>
       )}
 
-      {/* Exit / unmute bar — always above scene (zIndex 4) */}
+      {/* Exit / unmute bar */}
       <div
         id="vr-exit-overlay"
         style={{
@@ -242,7 +218,7 @@ export default function VRViewer({ src, onClose }) {
         {muted && (
           <button onClick={handleUnmute} style={{
             ...exitBtnStyle,
-            background: 'rgba(251,191,36,0.15)',
+            background: 'rgba(251,191,36,0.12)',
             border: '1px solid #fbbf24',
             color: '#fbbf24',
             animation: 'vrPulse 2s ease-in-out infinite',
@@ -258,29 +234,23 @@ export default function VRViewer({ src, onClose }) {
               Drag to look around &nbsp;·&nbsp; Click <strong style={{ color: '#c8ff00' }}>[⊙]</strong> for headset mode
             </div>
             <div style={{ fontSize: '0.74rem', color: '#666', fontFamily: 'IBM Plex Mono,monospace' }}>
-              Head tracking active in VR mode &nbsp;·&nbsp; Tap scene to unmute audio
+              Head tracking active in VR mode
             </div>
           </div>
         </div>
       </div>
 
-      {/*
-        A-Frame scene — embedded so canvas stays inside this fixed portal div.
-        No <a-assets> — texture is applied via THREE.VideoTexture directly.
-        a-videosphere starts with no src; texture is bound in useEffect.
-      */}
       <a-scene
         ref={sceneRef}
         embedded
         vr-mode-ui="enabled: true"
         loading-screen="enabled: false"
-        background="color: #050811"
+        background="color: #080808"
         renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true"
         device-orientation-permission-ui="enabled: false"
         style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}
         onClick={handleUnmute}
       >
-        {/* No src here — texture applied via THREE.VideoTexture in useEffect */}
         <a-videosphere
           id="vr-sphere"
           rotation="0 -90 0"
@@ -288,29 +258,21 @@ export default function VRViewer({ src, onClose }) {
           segments-width="64"
           radius="100"
         />
-
         <a-camera
           look-controls="enabled: true; reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: true"
           wasd-controls="enabled: false"
           position="0 0 0"
         />
-
       </a-scene>
 
       <style>{`
-        @keyframes vrPulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.5; }
-        }
-        a-scene[embedded] canvas {
-          width: 100% !important;
-          height: 100% !important;
-        }
+        @keyframes vrPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        a-scene[embedded] canvas { width:100%!important; height:100%!important; }
       `}</style>
     </div>
   );
 
-  return ReactDOM.createPortal(content, portalRootRef.current);
+  return ReactDOM.createPortal(content, portalRoot);
 }
 
 const exitBtnStyle = {
