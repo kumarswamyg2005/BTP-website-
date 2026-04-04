@@ -26,7 +26,7 @@ export default function VideoCard({ video, index, onClick }) {
           loading="lazy"
           draggable="false"
         />
-        <div className="video-lock-badge">🔐 Encrypted</div>
+        <div className="video-lock-badge">ENC Encrypted</div>
         <div className="video-play-overlay">
           <div className="play-btn-circle">▶</div>
         </div>
@@ -35,7 +35,7 @@ export default function VideoCard({ video, index, onClick }) {
         <h3 className="video-card-title">{video.title}</h3>
         <div className="video-card-meta">
           <span className="badge">{capitalize(video.category)}</span>
-          <span className="badge badge-cyan">🥽 VR</span>
+          <span className="badge">VR</span>
           {video.binFileName && (
             <span className="badge badge-gold" title={video.binFileName}>
               .{video.binFileName.split('.').pop().toUpperCase()}
