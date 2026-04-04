@@ -26,7 +26,7 @@ export default function VideoCard({ video, index, onClick }) {
           loading="lazy"
           draggable="false"
         />
-        <div className="video-lock-badge">ENC Encrypted</div>
+        <div className="video-lock-badge">Encrypted</div>
         <div className="video-play-overlay">
           <div className="play-btn-circle">▶</div>
         </div>
