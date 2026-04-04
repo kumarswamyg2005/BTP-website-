@@ -83,7 +83,7 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
     return () => {
       clearTimeout(wmarkTimer.current);
     };
-  }, [src, userId, redraw, embedFrame]);
+  }, [src, userId, redraw]);
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
