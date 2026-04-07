@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -13,13 +13,8 @@ import { useToast } from '../context/ToastContext.jsx';
   Fullscreen strategy:
   ─────────────────────────────────────────────────────────────
   A-Frame's built-in VR button calls canvas.requestFullscreen(),
-  which hides our HTML controls (they're not inside the canvas).
-  We disable A-Frame's VR mode UI and add our own fullscreen
-  button that makes the outer wrapper div fullscreen — controls
-  live inside that div and stay visible at all times.
-
-  Controls are NEVER hidden — even during a real XR headset
-  session they remain visible on the monitor for the operator.
+  which hides our HTML controls. We disable A-Frame's VR mode UI
+  and add our own controls that fullscreen the outer wrapper div.
 */
 
 const VR_PORTAL_ROOT = (() => {
@@ -110,7 +105,6 @@ export default function VRViewer({ src, onClose }) {
     function onCanPlay()     { videoReady = true; applyTexture(); }
     function onVideoError()  { setLoading(false); setError(true); }
 
-    // Resume playback if it was paused when entering VR/fullscreen
     function onEnterVR() {
       const v = videoRef.current;
       if (v && v.paused && !closedRef.current) v.play().catch(() => {});
@@ -188,20 +182,9 @@ export default function VRViewer({ src, onClose }) {
     }
   }
 
-  function handleEnterVR() {
-    sceneRef.current?.enterVR();
-  }
-
   const content = (
-    <div
-      ref={outerRef}
-      style={{
-        position: 'fixed', inset: 0,
-        zIndex: 99999,
-        background: '#000',
-        width: '100%', height: '100%',
-      }}
-    >
+    <div ref={outerRef} className="vr-root">
+
       <video
         ref={videoRef}
         src={src}
@@ -213,7 +196,7 @@ export default function VRViewer({ src, onClose }) {
         loop
       />
 
-      {/* A-Frame scene — sits at the base, z-index 1 */}
+      {/* A-Frame scene — base layer */}
       <a-scene
         ref={sceneRef}
         embedded
@@ -222,11 +205,7 @@ export default function VRViewer({ src, onClose }) {
         background="color: #080808"
         renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true"
         device-orientation-permission-ui="enabled: false"
-        style={{
-          position: 'absolute', top: 0, left: 0,
-          width: '100%', height: '100%',
-          zIndex: 1,
-        }}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}
         onClick={handleUnmute}
       >
         <a-videosphere
@@ -243,176 +222,435 @@ export default function VRViewer({ src, onClose }) {
         />
       </a-scene>
 
-      {/* Loading overlay — z-index 100 */}
+      {/* ── Loading overlay ─────────────────────────────── */}
       {loading && !error && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 100,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          background: '#080808', gap: 16,
-          pointerEvents: 'none',
-        }}>
-          <div style={{
-            width: 48, height: 48,
-            border: '2px solid rgba(200,255,0,0.15)',
-            borderTopColor: '#c8ff00',
-            borderRadius: '50%',
-            animation: 'spin 0.9s linear infinite',
-          }} />
-          <p style={{ color: '#efefef', fontSize: '0.88rem', fontFamily: 'IBM Plex Mono,monospace', letterSpacing: '0.05em' }}>
-            LOADING 360° VIEW…
-          </p>
+        <div className="vr-loading-overlay">
+          <div className="vr-spinner" />
+          <p className="vr-loading-text">// INITIALIZING 360° FEED…</p>
         </div>
       )}
 
-      {/* Error overlay — z-index 100 */}
+      {/* ── Error overlay ───────────────────────────────── */}
       {error && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 100,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          background: '#080808', gap: 16,
-        }}>
-          <span style={{ fontSize: '3rem' }}>⚠️</span>
-          <p style={{ color: '#fca5a5', fontSize: '0.9rem', fontFamily: 'IBM Plex Mono,monospace', textAlign: 'center', maxWidth: 340 }}>
-            Could not load video. Check the file exists and is a valid format.
-          </p>
-          <button onClick={handleClose} style={exitBtnStyle}>← Back</button>
+        <div className="vr-error-overlay">
+          <span className="vr-error-icon">⚠</span>
+          <p className="vr-error-text">STREAM UNAVAILABLE — CHECK ASSET PATH</p>
+          <button onClick={handleClose} className="vr-hud-btn vr-top-btn">← BACK</button>
         </div>
       )}
 
-      {/* ── Controls — always visible, z-index 9999 ───────────── */}
-
-      {/* Top-left: back + unmute */}
-      <div style={{
-        position: 'absolute', top: 20, left: 20,
-        zIndex: 9999,
-        display: 'flex', gap: 10, alignItems: 'center',
-        pointerEvents: 'auto',
-      }}>
-        <button onClick={handleClose} style={exitBtnStyle}>← Back</button>
-
+      {/* ── Top-left: back + unmute ──────────────────────── */}
+      <div className="vr-top-left">
+        <button onClick={handleClose} className="vr-hud-btn vr-top-btn">
+          ← BACK
+        </button>
         {muted && !loading && !error && (
-          <button onClick={handleUnmute} style={{
-            ...exitBtnStyle,
-            background: 'rgba(251,191,36,0.15)',
-            border: '1px solid #fbbf24',
-            color: '#fbbf24',
-            animation: 'vrPulse 2s ease-in-out infinite',
-          }}>
-            🔇 Tap to Unmute
+          <button onClick={handleUnmute} className="vr-hud-btn vr-top-btn vr-unmute-btn">
+            ◈ UNMUTE
           </button>
         )}
       </div>
 
-      {/* Top-right: enter VR + fullscreen toggle */}
+      {/* ── Top-right: fullscreen ───────────────────────── */}
       {!loading && !error && (
-        <div style={{
-          position: 'absolute', top: 20, right: 20,
-          zIndex: 9999,
-          display: 'flex', gap: 10, alignItems: 'center',
-          pointerEvents: 'auto',
-        }}>
-          <button onClick={handleEnterVR} style={exitBtnStyle} title="Start WebXR headset session">
-            🥽 Enter VR
-          </button>
-          <button onClick={handleFullscreenToggle} style={exitBtnStyle}>
-            {isFullscreen ? '⊠ Exit Fullscreen' : '⛶ Fullscreen'}
+        <div className="vr-top-right">
+          <button onClick={handleFullscreenToggle} className="vr-hud-btn vr-top-btn">
+            {isFullscreen ? '⊠ EXIT FULLSCREEN' : '⛶ FULLSCREEN'}
           </button>
         </div>
       )}
 
-      {/* Bottom-center: rewind / pause / skip */}
+      {/* ── Bottom-center: playback controls ────────────── */}
       {!loading && !error && (
-        <div style={{
-          position: 'absolute',
-          bottom: 28,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 9999,
-          display: 'flex', gap: 10, alignItems: 'center',
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          padding: '10px 22px',
-          borderRadius: 10,
-          border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 4px 32px rgba(0,0,0,0.6)',
-          pointerEvents: 'auto',
-          whiteSpace: 'nowrap',
-        }}>
-          <button onClick={() => handleSkip(-10)} style={ctrlBtnStyle}>
-            ⏪ −10s
-          </button>
-
-          <button
-            onClick={handlePauseToggle}
-            style={{
-              ...ctrlBtnStyle,
-              background: paused ? 'rgba(200,255,0,0.22)' : 'rgba(200,255,0,0.08)',
-              border: '1px solid rgba(200,255,0,0.6)',
-              color: '#c8ff00',
-              minWidth: 90,
-            }}
-          >
-            {paused ? '▶ Play' : '⏸ Pause'}
-          </button>
-
-          <button onClick={() => handleSkip(10)} style={ctrlBtnStyle}>
-            +10s ⏩
-          </button>
+        <div className="vr-ctrl-wrap">
+          <span className="vr-ctrl-label">// PLAYBACK CONTROLS</span>
+          <div className="vr-ctrl-bar">
+            <button
+              onClick={() => handleSkip(-10)}
+              className="vr-hud-btn vr-ctrl-btn"
+            >
+              « −10S
+            </button>
+            <button
+              onClick={handlePauseToggle}
+              className={`vr-hud-btn vr-ctrl-btn vr-pause-btn${paused ? ' vr-pause-btn--paused' : ''}`}
+            >
+              {paused ? '▶ PLAY' : '⏸ PAUSE'}
+            </button>
+            <button
+              onClick={() => handleSkip(10)}
+              className="vr-hud-btn vr-ctrl-btn"
+            >
+              +10S »
+            </button>
+          </div>
         </div>
       )}
 
-      <style>{`
-        @keyframes vrPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        @keyframes spin     { to { transform: rotate(360deg); } }
-        a-scene[embedded] canvas { width:100%!important; height:100%!important; }
-        /* Hide all A-Frame injected UI buttons */
-        .a-enter-vr,
-        .a-enter-ar,
-        .a-enter-vr-button,
-        .a-enter-ar-button,
-        [data-aframe-vr-mode-ui],
-        [data-aframe-default-vr-ui],
-        .a-orientation-modal { display: none !important; }
-      `}</style>
+
+      <style>{HUD_CSS}</style>
     </div>
   );
 
   return ReactDOM.createPortal(content, VR_PORTAL_ROOT);
 }
 
-const exitBtnStyle = {
-  background: 'rgba(200,255,0,0.1)',
-  border: '1px solid rgba(200,255,0,0.4)',
-  color: '#c8ff00',
-  fontFamily: 'IBM Plex Mono,monospace',
-  fontWeight: 700,
-  padding: '9px 20px',
-  borderRadius: 4,
-  cursor: 'pointer',
-  fontSize: '0.78rem',
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase',
-  minHeight: 40,
-  whiteSpace: 'nowrap',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
-};
+/* ─────────────────────────────────────────────────────────────
+   HUD CSS — Industrial Sci-Fi / Secret Lab theme
+   ───────────────────────────────────────────────────────────── */
+const HUD_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Share+Tech+Mono&display=swap');
 
-const ctrlBtnStyle = {
-  background: 'rgba(255,255,255,0.07)',
-  border: '1px solid rgba(255,255,255,0.2)',
-  color: '#e2e8f0',
-  fontFamily: 'IBM Plex Mono,monospace',
-  fontWeight: 700,
-  padding: '8px 16px',
-  borderRadius: 5,
-  cursor: 'pointer',
-  fontSize: '0.76rem',
-  letterSpacing: '0.04em',
-  textTransform: 'uppercase',
-  minHeight: 38,
-  whiteSpace: 'nowrap',
-};
+/* ── Design tokens ──────────────────────────────────────────── */
+.vr-root {
+  --hud-bg:      rgba(10, 12, 10, 0.75);
+  --hud-border:  #3A4A2A;
+  --hud-text:    #B8D44A;
+  --hud-text-dim:#6B7A3A;
+  --hud-accent:  #C8E055;
+  --hud-danger:  #FF4444;
+  --hud-surface: rgba(20, 25, 15, 0.85);
+  --hud-font:    'JetBrains Mono', 'Share Tech Mono', 'IBM Plex Mono', monospace;
+
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #000;
+  width: 100%;
+  height: 100%;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BASE HUD BUTTON
+   ════════════════════════════════════════════════════════════ */
+.vr-hud-btn {
+  background:          var(--hud-surface);
+  border:              1px solid var(--hud-border);
+  color:               var(--hud-text);
+  font-family:         var(--hud-font);
+  font-weight:         600;
+  font-size:           0.71rem;
+  letter-spacing:      0.12em;
+  text-transform:      uppercase;
+  padding:             9px 18px;
+  border-radius:       3px;
+  cursor:              crosshair;
+  min-height:          38px;
+  white-space:         nowrap;
+  font-variant-numeric: tabular-nums;
+  position:            relative;
+  display:             inline-flex;
+  align-items:         center;
+  gap:                 6px;
+  outline:             none;
+  backdrop-filter:     blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    background  0.15s ease,
+    border-color 0.15s ease,
+    box-shadow  0.15s ease,
+    transform   0.1s  ease;
+}
+
+.vr-hud-btn:hover {
+  background:   rgba(200, 224, 85, 0.12);
+  border-color: var(--hud-accent);
+  box-shadow:   0 0 8px rgba(200, 224, 85, 0.2);
+}
+
+.vr-hud-btn:active {
+  background: rgba(200, 224, 85, 0.2);
+  transform:  scale(0.97);
+}
+
+/* ════════════════════════════════════════════════════════════
+   TOP BAR BUTTONS  — bracket glyphs + left-edge hover accent
+   ════════════════════════════════════════════════════════════ */
+.vr-top-btn::before {
+  content:     '[';
+  color:       var(--hud-text-dim);
+  font-weight: 400;
+  font-size:   0.9rem;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.vr-top-btn::after {
+  content:     ']';
+  color:       var(--hud-text-dim);
+  font-weight: 400;
+  font-size:   0.9rem;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.vr-top-btn:hover {
+  /* Left 3px accent bar via inset shadow — no layout shift */
+  box-shadow: inset 3px 0 0 var(--hud-accent), 0 0 8px rgba(200, 224, 85, 0.2);
+}
+
+/* ── ENTER VR — slow attention pulse ───────────────────────── */
+.vr-btn-vr {
+  animation: vrHudPulse 2.8s ease-in-out infinite;
+}
+@keyframes vrHudPulse {
+  0%,  100% { box-shadow: 0 0 3px rgba(200, 224, 85, 0.1); }
+  50%        {
+    box-shadow:   0 0 12px rgba(200, 224, 85, 0.4);
+    border-color: var(--hud-accent);
+  }
+}
+
+/* ── UNMUTE — amber warning pulse ──────────────────────────── */
+.vr-unmute-btn {
+  border-color: #6B5010;
+  color:        #C89A18;
+  animation:    unmuteFlash 2s ease-in-out infinite;
+}
+.vr-unmute-btn::before,
+.vr-unmute-btn::after { color: #4A3A0A; }
+@keyframes unmuteFlash {
+  0%, 100% { opacity: 1;    border-color: #6B5010; }
+  50%       { opacity: 0.55; border-color: #C89A18; }
+}
+
+/* ── Top-left / top-right containers ───────────────────────── */
+.vr-top-left,
+.vr-top-right {
+  position:      absolute;
+  top:           20px;
+  z-index:       9999;
+  display:       flex;
+  gap:           10px;
+  align-items:   center;
+  pointer-events: auto;
+}
+.vr-top-left  { left:  20px; }
+.vr-top-right { right: 20px; }
+
+/* ════════════════════════════════════════════════════════════
+   BOTTOM CONTROL WRAP + BAR
+   ════════════════════════════════════════════════════════════ */
+.vr-ctrl-wrap {
+  position:       absolute;
+  bottom:         28px;
+  left:           50%;
+  transform:      translateX(-50%);
+  z-index:        9999;
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            5px;
+  pointer-events: auto;
+}
+
+/* "// PLAYBACK CONTROLS" label */
+.vr-ctrl-label {
+  font-family:    var(--hud-font);
+  font-size:      9px;
+  color:          var(--hud-text-dim);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select:    none;
+}
+
+/* Bar container */
+.vr-ctrl-bar {
+  display:              flex;
+  align-items:          stretch;
+  background:           rgba(10, 12, 10, 0.82);
+  border:               1px solid var(--hud-border);
+  border-radius:        3px;
+  backdrop-filter:      blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 28px rgba(0, 0, 0, 0.7),
+    0 0 1px rgba(200, 224, 85, 0.06);
+  position:   relative;
+  overflow:   hidden;
+}
+
+/* 2px top accent line */
+.vr-ctrl-bar::before {
+  content:    '';
+  position:   absolute;
+  top: 0; left: 0; right: 0;
+  height:     2px;
+  background: var(--hud-accent);
+  pointer-events: none;
+  z-index:    10;
+}
+
+/* Scanline texture overlay */
+.vr-ctrl-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.04) 3px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 11;
+}
+
+/* ── Buttons inside the bar — strip inherited border/radius ─── */
+.vr-ctrl-bar .vr-ctrl-btn {
+  border:               none;
+  border-radius:        0;
+  background:           transparent;
+  backdrop-filter:      none;
+  -webkit-backdrop-filter: none;
+  padding:              11px 24px;
+  position:             relative;
+  z-index:              12;
+}
+.vr-ctrl-bar .vr-ctrl-btn:hover {
+  background:   rgba(200, 224, 85, 0.07);
+  border-color: transparent;
+  box-shadow:   none;
+}
+.vr-ctrl-bar .vr-ctrl-btn:active {
+  background: rgba(200, 224, 85, 0.14);
+  transform:  scale(0.97);
+}
+
+/* ── PAUSE button — dividers + state colors ─────────────────── */
+.vr-ctrl-bar .vr-pause-btn {
+  border-left:   1px solid var(--hud-border) !important;
+  border-right:  1px solid var(--hud-border) !important;
+  border-top:    none !important;
+  border-bottom: none !important;
+  min-width:     100px;
+  justify-content: center;
+  color:         var(--hud-accent);
+  /* Smooth fade-back transition when resuming */
+  transition:
+    border-left-color  0.55s ease,
+    border-right-color 0.55s ease,
+    background         0.15s ease,
+    color              0.2s  ease;
+}
+
+/* PAUSED state — danger dividers, instant switch, icon pulse */
+.vr-ctrl-bar .vr-pause-btn--paused {
+  border-left-color:  var(--hud-danger) !important;
+  border-right-color: var(--hud-danger) !important;
+  color:              var(--hud-accent);
+  /* Instant switch to danger (overrides the 0.55s transition) */
+  transition:
+    border-left-color  0s,
+    border-right-color 0s,
+    background         0.15s ease,
+    color              0.2s  ease;
+  animation: pauseIconPulse 1.4s ease-in-out infinite;
+}
+/* When un-paused, the 0.55s transition on the non-paused rule
+   smoothly fades the border back from danger → hud-border      */
+
+@keyframes pauseIconPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   BOTTOM-RIGHT COMPACT FULLSCREEN ICON
+   ════════════════════════════════════════════════════════════ */
+.vr-fs-corner-btn {
+  position:        absolute;
+  bottom:          20px;
+  right:           20px;
+  z-index:         9999;
+  width:           42px;
+  height:          42px;
+  padding:         0;
+  font-size:       1.05rem;
+  justify-content: center;
+  pointer-events:  auto;
+}
+/* No brackets on this icon-only button */
+.vr-fs-corner-btn::before,
+.vr-fs-corner-btn::after { content: none; }
+
+/* ════════════════════════════════════════════════════════════
+   LOADING OVERLAY
+   ════════════════════════════════════════════════════════════ */
+.vr-loading-overlay {
+  position:        absolute;
+  inset:           0;
+  z-index:         100;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  background:      #060806;
+  gap:             16px;
+  pointer-events:  none;
+}
+
+.vr-spinner {
+  width:        44px;
+  height:       44px;
+  border:       2px solid rgba(184, 212, 74, 0.1);
+  border-top-color: var(--hud-accent);
+  border-radius: 50%;
+  animation:    spin 0.9s linear infinite;
+}
+
+.vr-loading-text {
+  color:          var(--hud-text-dim);
+  font-size:      0.78rem;
+  font-family:    var(--hud-font);
+  letter-spacing: 0.16em;
+  margin:         0;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ERROR OVERLAY
+   ════════════════════════════════════════════════════════════ */
+.vr-error-overlay {
+  position:        absolute;
+  inset:           0;
+  z-index:         100;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  background:      #060806;
+  gap:             18px;
+}
+.vr-error-icon {
+  font-size:  2.4rem;
+  color:      var(--hud-danger);
+  line-height: 1;
+}
+.vr-error-text {
+  color:          #FF8888;
+  font-size:      0.78rem;
+  font-family:    var(--hud-font);
+  letter-spacing: 0.1em;
+  text-align:     center;
+  max-width:      340px;
+  margin:         0;
+}
+
+/* ════════════════════════════════════════════════════════════
+   KEYFRAMES
+   ════════════════════════════════════════════════════════════ */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════════════════════════
+   A-FRAME FIXES + HIDE INJECTED UI
+   ════════════════════════════════════════════════════════════ */
+a-scene[embedded] canvas { width: 100% !important; height: 100% !important; }
+
+.a-enter-vr,
+.a-enter-ar,
+.a-enter-vr-button,
+.a-enter-ar-button,
+[data-aframe-vr-mode-ui],
+[data-aframe-default-vr-ui],
+.a-orientation-modal { display: none !important; }
+`;
