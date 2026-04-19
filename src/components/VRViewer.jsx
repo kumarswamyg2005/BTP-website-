@@ -31,11 +31,38 @@ export default function VRViewer({ src, onClose }) {
   const [muted,        setMuted]        = useState(true);
   const [paused,       setPaused]       = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isVRMode,     setIsVRMode]     = useState(false);
+  const [xrSupported,  setXrSupported]  = useState(false);
 
-  const sceneRef  = useRef(null);
-  const videoRef  = useRef(null);
-  const outerRef  = useRef(null);
-  const closedRef = useRef(false);
+  const sceneRef       = useRef(null);
+  const videoRef       = useRef(null);
+  const outerRef       = useRef(null);
+  const closedRef      = useRef(false);
+  const xrSupportedRef = useRef(false); // ref copy so applyTexture closure can read it
+  const vrReadyRef     = useRef(false); // true once scene+video are ready
+
+  // ── Attempt auto-enter VR — needs both xr support AND scene ready ──
+  function tryAutoEnterVR() {
+    if (!xrSupportedRef.current || !vrReadyRef.current || closedRef.current) return;
+    const scene = sceneRef.current;
+    if (scene && !scene.is('vr-mode')) {
+      scene.enterVR().catch(() => {});
+    }
+  }
+
+  // ── Detect WebXR immersive-vr support (Meta Quest, etc.) ────
+  useEffect(() => {
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-vr')
+        .then(supported => {
+          setXrSupported(supported);
+          xrSupportedRef.current = supported;
+          tryAutoEnterVR(); // fires if scene was already ready
+        })
+        .catch(() => setXrSupported(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Fullscreen change listener ───────────────────────────────
   useEffect(() => {
@@ -99,6 +126,11 @@ export default function VRViewer({ src, onClose }) {
       }
 
       toast('🥽 360° active! Tap 🔊 to unmute.', 'success', 5000);
+
+      // Auto-enter immersive VR on headsets — fires if XR was already detected,
+      // otherwise tryAutoEnterVR() will fire from the XR detection callback instead.
+      vrReadyRef.current = true;
+      tryAutoEnterVR();
     }
 
     function onSceneLoaded() { sceneReady = true; applyTexture(); }
@@ -106,8 +138,13 @@ export default function VRViewer({ src, onClose }) {
     function onVideoError()  { setLoading(false); setError(true); }
 
     function onEnterVR() {
+      setIsVRMode(true);
       const v = videoRef.current;
       if (v && v.paused && !closedRef.current) v.play().catch(() => {});
+    }
+
+    function onExitVR() {
+      setIsVRMode(false);
     }
 
     if (scene.hasLoaded) {
@@ -116,14 +153,17 @@ export default function VRViewer({ src, onClose }) {
       scene.addEventListener('loaded', onSceneLoaded, { once: true });
     }
     scene.addEventListener('enter-vr', onEnterVR);
+    scene.addEventListener('exit-vr',  onExitVR);
     video.addEventListener('canplay',  onCanPlay,    { once: true });
     video.addEventListener('error',    onVideoError, { once: true });
     video.load();
 
     return () => {
       closedRef.current = true;
+      vrReadyRef.current = false;
       scene.removeEventListener('loaded',   onSceneLoaded);
       scene.removeEventListener('enter-vr', onEnterVR);
+      scene.removeEventListener('exit-vr',  onExitVR);
     };
   }, [src, toast]);
 
@@ -171,7 +211,21 @@ export default function VRViewer({ src, onClose }) {
   }
 
   function handleFullscreenToggle() {
-    const el = outerRef.current;
+    const scene = sceneRef.current;
+    const el    = outerRef.current;
+
+    // On WebXR-capable devices (Meta Quest, etc.) use A-Frame's immersive-vr
+    // session so the headset renders in full VR — not just the browser window.
+    if (xrSupported && scene) {
+      if (isVRMode) {
+        scene.exitVR();
+      } else {
+        scene.enterVR();
+      }
+      return;
+    }
+
+    // Desktop fallback — regular browser fullscreen
     if (!el) return;
     if (!document.fullscreenElement) {
       const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
@@ -205,6 +259,7 @@ export default function VRViewer({ src, onClose }) {
         background="color: #080808"
         renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true"
         device-orientation-permission-ui="enabled: false"
+        webxr="requiredFeatures: local; optionalFeatures: local-floor, bounded-floor, hand-tracking"
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}
         onClick={handleUnmute}
       >
@@ -251,11 +306,14 @@ export default function VRViewer({ src, onClose }) {
         )}
       </div>
 
-      {/* ── Top-right: fullscreen ───────────────────────── */}
+      {/* ── Top-right: fullscreen / enter VR ───────────── */}
       {!loading && !error && (
         <div className="vr-top-right">
-          <button onClick={handleFullscreenToggle} className="vr-hud-btn vr-top-btn">
-            {isFullscreen ? '⊠ EXIT FULLSCREEN' : '⛶ FULLSCREEN'}
+          <button onClick={handleFullscreenToggle} className={`vr-hud-btn vr-top-btn${xrSupported ? ' vr-btn-vr' : ''}`}>
+            {xrSupported
+              ? (isVRMode ? '⊠ EXIT VR' : '🥽 ENTER VR')
+              : (isFullscreen ? '⊠ EXIT FULLSCREEN' : '⛶ FULLSCREEN')
+            }
           </button>
         </div>
       )}
