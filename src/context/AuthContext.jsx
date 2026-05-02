@@ -65,6 +65,10 @@ export function AuthProvider({ children }) {
     return fullUser;
   }, []);
 
+  const register = useCallback(async (username, password, displayName) => {
+    return await AuthService.register(username, password, displayName);
+  }, []);
+
   const logout = useCallback(() => {
     sessionStorage.clear();
     setUser(null);
@@ -110,6 +114,7 @@ export function AuthProvider({ children }) {
     isLoggedIn: !!user,
     role: user?.role || null,
     login,
+    register,
     logout,
     registeredHeadsets: headsets,
     activeHeadset,

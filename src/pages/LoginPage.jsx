@@ -9,25 +9,71 @@ function sleep(ms) {
 }
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
+  const [isRegister, setIsRegister] = useState(false);
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [shake, setShake] = useState(false);
 
+  function resetForm() {
+    setUserId('');
+    setPassword('');
+    setConfirmPassword('');
+    setDisplayName('');
+    setAuthError('');
+    setShowPassword(false);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setAuthError('');
 
-    if (!userId && !password) { setAuthError('Please enter your User ID and password.'); return; }
-    if (!userId) { setAuthError('User ID is required.'); return; }
-    if (!password) { setAuthError('Password is required.'); return; }
+    if (!userId || !password) {
+      setAuthError(isRegister ? 'Please fill in all required fields.' : 'Please enter your User ID and password.');
+      return;
+    }
 
+    if (isRegister) {
+      if (!displayName.trim()) {
+        setAuthError('Display name is required.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setAuthError('Passwords do not match.');
+        return;
+      }
+      if (password.length < 4) {
+        setAuthError('Password must be at least 4 characters.');
+        return;
+      }
+
+      setLoading(true);
+      await sleep(600);
+      const result = await register(userId, password, displayName);
+      setLoading(false);
+
+      if (!result.success) {
+        setAuthError(result.error);
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+        return;
+      }
+
+      toast('Account created successfully. Please sign in.', 'success');
+      setIsRegister(false);
+      resetForm();
+      return;
+    }
+
+    // Login flow
     setLoading(true);
     await sleep(900);
 
@@ -117,14 +163,32 @@ export default function LoginPage() {
         <div className="login-right">
           <div className={`login-card${shake ? ' shake' : ''}`}>
             <div className="login-card-header">
-              <h2>Sign In</h2>
-              <p>Enter your credentials to access Unity Stream</p>
+              <h2>{isRegister ? 'Create Account' : 'Sign In'}</h2>
+              <p>{isRegister ? 'Register a new Unity Stream account' : 'Enter your credentials to access Unity Stream'}</p>
             </div>
 
             <form className="login-form" onSubmit={handleSubmit} noValidate>
               {authError && (
                 <div className="auth-alert auth-alert-error visible" role="alert" aria-live="polite">
                   {authError}
+                </div>
+              )}
+
+              {isRegister && (
+                <div className="form-group">
+                  <label className="form-label">Display Name</label>
+                  <div className="input-icon-wrap">
+                    <span className="input-icon">🧑</span>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Your display name"
+                      autoComplete="name"
+                      value={displayName}
+                      onChange={e => { setDisplayName(e.target.value); setAuthError(''); }}
+                      required
+                    />
+                  </div>
                 </div>
               )}
 
@@ -151,8 +215,8 @@ export default function LoginPage() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     className="form-input"
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
+                    placeholder={isRegister ? 'Create a password' : 'Enter your password'}
+                    autoComplete={isRegister ? 'new-password' : 'current-password'}
                     value={password}
                     onChange={e => { setPassword(e.target.value); setAuthError(''); }}
                     required
@@ -168,63 +232,103 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="login-options">
-                <label className="checkbox-wrap">
-                  <input type="checkbox" />
-                  <span className="checkbox-label">Remember this device</span>
-                </label>
-                <a href="#" className="link-subtle" onClick={e => e.preventDefault()}>
-                  Forgot password?
-                </a>
-              </div>
+              {isRegister && (
+                <div className="form-group">
+                  <label className="form-label">Confirm Password</label>
+                  <div className="input-icon-wrap">
+                    <span className="input-icon">🔑</span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="Confirm your password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={e => { setConfirmPassword(e.target.value); setAuthError(''); }}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!isRegister && (
+                <div className="login-options">
+                  <label className="checkbox-wrap">
+                    <input type="checkbox" />
+                    <span className="checkbox-label">Remember this device</span>
+                  </label>
+                  <a href="#" className="link-subtle" onClick={e => e.preventDefault()}>
+                    Forgot password?
+                  </a>
+                </div>
+              )}
 
               <button
                 type="submit"
                 className="btn btn-primary login-submit-btn"
                 disabled={loading}
               >
-                <span>{loading ? 'Authenticating…' : 'Sign In'}</span>
+                <span>{loading ? (isRegister ? 'Creating…' : 'Authenticating…') : (isRegister ? 'Create Account' : 'Sign In')}</span>
                 {loading && <div className="spinner"></div>}
               </button>
             </form>
 
-            {/* Demo credentials */}
-            <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 20 }}>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Demo Credentials
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  { id: 'admin', pass: 'Password', role: 'Admin', color: '#ff4444' },
-                  { id: 'editor', pass: 'Editor@2025!', role: 'Editor', color: '#a78bfa' },
-                  { id: 'user01', pass: 'User@2025!', role: 'User', color: '#22c55e' },
-                ].map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => { setUserId(c.id); setPassword(c.pass); setAuthError(''); }}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '8px 14px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.07)',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      color: 'var(--text-secondary)',
-                      fontSize: '0.83rem',
-                      fontFamily: 'var(--mono)',
-                    }}
-                  >
-                    <span>{c.id}</span>
-                    <span style={{ color: c.color, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>
-                      {c.role}
-                    </span>
-                  </button>
-                ))}
-              </div>
+            {/* Toggle link */}
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => { setIsRegister(v => !v); resetForm(); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent)',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font)',
+                }}
+              >
+                {isRegister ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
+              </button>
             </div>
+
+            {/* Demo credentials — hide in register mode */}
+            {!isRegister && (
+              <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 20 }}>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Demo Credentials
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { id: 'admin', pass: 'Password', role: 'Admin', color: '#ff4444' },
+                    { id: 'editor', pass: 'Editor@2025!', role: 'Editor', color: '#a78bfa' },
+                    { id: 'user01', pass: 'User@2025!', role: 'User', color: '#22c55e' },
+                  ].map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setUserId(c.id); setPassword(c.pass); setAuthError(''); }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 14px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.83rem',
+                        fontFamily: 'var(--mono)',
+                      }}
+                    >
+                      <span>{c.id}</span>
+                      <span style={{ color: c.color, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                        {c.role}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p className="login-footer">
               Unity Stream v2.0 &nbsp;|&nbsp; ARDS × CAC × CSC Division

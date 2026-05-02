@@ -649,12 +649,13 @@ textarea.form-input {
   z-index: 800;
   background: rgba(8, 8, 8, 0.85);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   opacity: 0;
   visibility: hidden;
   transition: all 0.25s ease;
   padding: 20px;
+  overflow-y: auto;
 }
 .modal-overlay.open {
   opacity: 1;
@@ -670,6 +671,9 @@ textarea.form-input {
   box-shadow: var(--shadow-lg);
   transform: translateY(12px);
   transition: transform var(--transition-slow);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  margin: auto;
 }
 .modal-overlay.open .modal-box {
   transform: translateY(0);

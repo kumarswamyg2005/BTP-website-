@@ -33,8 +33,11 @@ export default function VRViewer({ src, onClose }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isVRMode,     setIsVRMode]     = useState(false);
   const [xrSupported,  setXrSupported]  = useState(false);
+  const [ended,        setEnded]        = useState(false);
 
   const sceneRef       = useRef(null);
+  const handleCloseRef = useRef(() => {});
+  const handleReplayRef = useRef(() => {});
   const videoRef       = useRef(null);
   const outerRef       = useRef(null);
   const closedRef      = useRef(false);
@@ -91,7 +94,6 @@ export default function VRViewer({ src, onClose }) {
     if (!video || !scene) return;
 
     video.muted       = true;
-    video.loop        = true;
     video.playsInline = true;
 
     let sceneReady = false;
@@ -182,6 +184,17 @@ export default function VRViewer({ src, onClose }) {
 
     onClose();
   }
+  handleCloseRef.current = handleClose;
+
+  function handleReplay() {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    video.play().catch(() => {});
+    setEnded(false);
+    setPaused(false);
+  }
+  handleReplayRef.current = handleReplay;
 
   function handleUnmute() {
     const video = videoRef.current;
@@ -236,6 +249,30 @@ export default function VRViewer({ src, onClose }) {
     }
   }
 
+  // ── Attach A-Frame entity click listeners for VR fallback UI ──
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    function attach() {
+      const replayPlane = scene.querySelector('#vr-replay-plane');
+      const exitPlane = scene.querySelector('#vr-exit-plane');
+      if (replayPlane) {
+        replayPlane.addEventListener('click', () => handleReplayRef.current());
+      }
+      if (exitPlane) {
+        exitPlane.addEventListener('click', () => handleCloseRef.current());
+      }
+    }
+
+    if (scene.hasLoaded) {
+      attach();
+    } else {
+      scene.addEventListener('loaded', attach, { once: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const content = (
     <div ref={outerRef} className="vr-root">
 
@@ -247,104 +284,142 @@ export default function VRViewer({ src, onClose }) {
         webkit-playsinline=""
         preload="auto"
         muted
-        loop
+        onEnded={() => { setEnded(true); setPaused(true); }}
       />
 
-      {/* A-Frame scene — base layer */}
-      <a-scene
-        ref={sceneRef}
-        embedded
-        vr-mode-ui="enabled: false"
-        loading-screen="enabled: false"
-        background="color: #080808"
-        renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true"
-        device-orientation-permission-ui="enabled: false"
-        webxr="requiredFeatures: local; optionalFeatures: local-floor, bounded-floor, hand-tracking"
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}
-        onClick={handleUnmute}
-      >
-        <a-videosphere
-          id="vr-sphere"
-          rotation="0 -90 0"
-          segments-height="64"
-          segments-width="64"
-          radius="100"
-        />
-        <a-camera
-          look-controls="enabled: true; reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: true"
-          wasd-controls="enabled: false"
-          position="0 0 0"
-        />
-      </a-scene>
+      {/* Scene container */}
+      <div className="vr-scene-wrap">
+        <a-scene
+          ref={sceneRef}
+          embedded
+          vr-mode-ui="enabled: false"
+          loading-screen="enabled: false"
+          background="color: #080808"
+          renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true"
+          device-orientation-permission-ui="enabled: false"
+          webxr="requiredFeatures: local; optionalFeatures: local-floor, bounded-floor, hand-tracking, dom-overlay; overlayElement: #vr-dom-overlay;"
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}
+          onClick={handleUnmute}
+        >
+          <a-videosphere
+            id="vr-sphere"
+            rotation="0 -90 0"
+            segments-height="64"
+            segments-width="64"
+            radius="100"
+          />
+          <a-camera
+            look-controls="enabled: true; reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: true"
+            wasd-controls="enabled: false"
+            position="0 0 0"
+          >
+            <a-cursor
+              id="vr-cursor"
+              color="#C8E055"
+              fuse="true"
+              fuse-timeout="1500"
+              scale="0.5 0.5 0.5"
+              raycaster="objects: .clickable"
+              animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 0.5 0.5 0.5"
+              animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 0.5 0.5 0.5; to: 0.1 0.1 0.1"
+            />
+          </a-camera>
 
-      {/* ── Loading overlay ─────────────────────────────── */}
-      {loading && !error && (
-        <div className="vr-loading-overlay">
-          <div className="vr-spinner" />
-          <p className="vr-loading-text">// INITIALIZING 360° FEED…</p>
-        </div>
-      )}
-
-      {/* ── Error overlay ───────────────────────────────── */}
-      {error && (
-        <div className="vr-error-overlay">
-          <span className="vr-error-icon">⚠</span>
-          <p className="vr-error-text">STREAM UNAVAILABLE — CHECK ASSET PATH</p>
-          <button onClick={handleClose} className="vr-hud-btn vr-top-btn">← BACK</button>
-        </div>
-      )}
-
-      {/* ── Top-left: back + unmute ──────────────────────── */}
-      <div className="vr-top-left">
-        <button onClick={handleClose} className="vr-hud-btn vr-top-btn">
-          ← BACK
-        </button>
-        {muted && !loading && !error && (
-          <button onClick={handleUnmute} className="vr-hud-btn vr-top-btn vr-unmute-btn">
-            ◈ UNMUTE
-          </button>
-        )}
+          {/* In-scene fallback UI for headsets without DOM Overlay */}
+          <a-entity visible={ended && isVRMode ? 'true' : 'false'} position="0 0 -4">
+            <a-plane color="#000" opacity="0.85" width="8" height="4" material="shader: flat"></a-plane>
+            <a-text value="// VIDEO ENDED //" align="center" position="0 1.2 0.01" width="6" color="#C8E055"></a-text>
+            <a-plane className="clickable" id="vr-replay-plane" position="-1.5 -0.3 0.01" width="2.2" height="0.7" color="#1a1a1a" material="shader: flat">
+              <a-text value="REPLAY" align="center" width="5" color="#B8D44A" position="0 0 0.01"></a-text>
+            </a-plane>
+            <a-plane className="clickable" id="vr-exit-plane" position="1.5 -0.3 0.01" width="2.2" height="0.7" color="#1a1a1a" material="shader: flat">
+              <a-text value="EXIT" align="center" width="5" color="#B8D44A" position="0 0 0.01"></a-text>
+            </a-plane>
+          </a-entity>
+        </a-scene>
       </div>
 
-      {/* ── Top-right: fullscreen / enter VR ───────────── */}
-      {!loading && !error && (
-        <div className="vr-top-right">
-          <button onClick={handleFullscreenToggle} className={`vr-hud-btn vr-top-btn${xrSupported ? ' vr-btn-vr' : ''}`}>
-            {xrSupported
-              ? (isVRMode ? '⊠ EXIT VR' : '🥽 ENTER VR')
-              : (isFullscreen ? '⊠ EXIT FULLSCREEN' : '⛶ FULLSCREEN')
-            }
-          </button>
-        </div>
-      )}
+      {/* DOM Overlay — visible in immersive VR on supported devices */}
+      <div id="vr-dom-overlay" className="vr-dom-overlay">
+        {/* ── Loading overlay ─────────────────────────────── */}
+        {loading && !error && (
+          <div className="vr-loading-overlay">
+            <div className="vr-spinner" />
+            <p className="vr-loading-text">// INITIALIZING 360° FEED…</p>
+          </div>
+        )}
 
-      {/* ── Bottom-center: playback controls ────────────── */}
-      {!loading && !error && (
-        <div className="vr-ctrl-wrap">
-          <span className="vr-ctrl-label">// PLAYBACK CONTROLS</span>
-          <div className="vr-ctrl-bar">
-            <button
-              onClick={() => handleSkip(-10)}
-              className="vr-hud-btn vr-ctrl-btn"
-            >
-              « −10S
+        {/* ── Error overlay ───────────────────────────────── */}
+        {error && (
+          <div className="vr-error-overlay">
+            <span className="vr-error-icon">⚠</span>
+            <p className="vr-error-text">STREAM UNAVAILABLE — CHECK ASSET PATH</p>
+            <button onClick={handleClose} className="vr-hud-btn vr-top-btn">← BACK</button>
+          </div>
+        )}
+
+        {/* ── Top-left: back + unmute ──────────────────────── */}
+        <div className="vr-top-left">
+          <button onClick={handleClose} className="vr-hud-btn vr-top-btn">
+            ← BACK
+          </button>
+          {muted && !loading && !error && (
+            <button onClick={handleUnmute} className="vr-hud-btn vr-top-btn vr-unmute-btn">
+              ◈ UNMUTE
             </button>
-            <button
-              onClick={handlePauseToggle}
-              className={`vr-hud-btn vr-ctrl-btn vr-pause-btn${paused ? ' vr-pause-btn--paused' : ''}`}
-            >
-              {paused ? '▶ PLAY' : '⏸ PAUSE'}
-            </button>
-            <button
-              onClick={() => handleSkip(10)}
-              className="vr-hud-btn vr-ctrl-btn"
-            >
-              +10S »
+          )}
+        </div>
+
+        {/* ── Top-right: fullscreen / enter VR ───────────── */}
+        {!loading && !error && (
+          <div className="vr-top-right">
+            <button onClick={handleFullscreenToggle} className={`vr-hud-btn vr-top-btn${xrSupported ? ' vr-btn-vr' : ''}`}>
+              {xrSupported
+                ? (isVRMode ? '⊠ EXIT VR' : '🥽 ENTER VR')
+                : (isFullscreen ? '⊠ EXIT FULLSCREEN' : '⛶ FULLSCREEN')
+              }
             </button>
           </div>
-        </div>
-      )}
+        )}
 
+        {/* ── Bottom-center: playback controls ────────────── */}
+        {!loading && !error && !ended && (
+          <div className="vr-ctrl-wrap">
+            <span className="vr-ctrl-label">// PLAYBACK CONTROLS</span>
+            <div className="vr-ctrl-bar">
+              <button
+                onClick={() => handleSkip(-10)}
+                className="vr-hud-btn vr-ctrl-btn"
+              >
+                « −10S
+              </button>
+              <button
+                onClick={handlePauseToggle}
+                className={`vr-hud-btn vr-ctrl-btn vr-pause-btn${paused ? ' vr-pause-btn--paused' : ''}`}
+              >
+                {paused ? '▶ PLAY' : '⏸ PAUSE'}
+              </button>
+              <button
+                onClick={() => handleSkip(10)}
+                className="vr-hud-btn vr-ctrl-btn"
+              >
+                +10S »
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── End-screen overlay ──────────────────────────── */}
+        {ended && (
+          <div className="vr-end-overlay">
+            <p className="vr-end-text">// VIDEO ENDED //</p>
+            <div className="vr-end-btns">
+              <button onClick={handleReplay} className="vr-hud-btn vr-top-btn">↻ REPLAY</button>
+              <button onClick={handleClose} className="vr-hud-btn vr-top-btn">⊠ EXIT</button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <style>{HUD_CSS}</style>
     </div>
@@ -698,6 +773,49 @@ const HUD_CSS = `
    KEYFRAMES
    ════════════════════════════════════════════════════════════ */
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Scene wrapper + DOM overlay ─────────────────────────── */
+.vr-scene-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #000;
+}
+.vr-dom-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════
+   END-SCREEN OVERLAY
+   ════════════════════════════════════════════════════════════ */
+.vr-end-overlay {
+  position:        absolute;
+  inset:           0;
+  z-index:         100;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(6, 8, 6, 0.92);
+  gap:             24px;
+  pointer-events:  auto;
+}
+.vr-end-text {
+  color:          var(--hud-accent);
+  font-size:      1.1rem;
+  font-family:    var(--hud-font);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin:         0;
+}
+.vr-end-btns {
+  display:        flex;
+  gap:            16px;
+  pointer-events: auto;
+}
 
 /* ════════════════════════════════════════════════════════════
    A-FRAME FIXES + HIDE INJECTED UI

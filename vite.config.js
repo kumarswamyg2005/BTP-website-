@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,          // listen on 0.0.0.0 so headsets on the same WiFi can connect
-    strictPort: true,
+    strictPort: false,
     headers: {
       // Allow any origin to fetch assets (needed when headset browser hits your LAN IP)
       'Access-Control-Allow-Origin': '*',

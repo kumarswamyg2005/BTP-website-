@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { LOCAL_USERS } from "../data/users.js";
+import { LOCAL_USERS, getCustomUsers } from "../data/users.js";
 import PageTransition from "../components/PageTransition.jsx";
 
 const SECURITY_LOG = [
@@ -62,6 +62,8 @@ const STATUS_COLORS = {
 
 export default function AdminPage() {
   const { videos, registeredHeadsets } = useAuth();
+  const customUsers = getCustomUsers();
+  const allUsers = { ...LOCAL_USERS, ...customUsers };
 
   return (
     <PageTransition
@@ -119,7 +121,7 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(LOCAL_USERS).map(([uid, u]) => (
+                {Object.entries(allUsers).map(([uid, u]) => (
                   <tr
                     key={uid}
                     style={{
@@ -235,7 +237,7 @@ export default function AdminPage() {
               },
               {
                 label: "Registered Users",
-                value: Object.keys(LOCAL_USERS).length,
+                value: Object.keys(allUsers).length,
                 icon: "👥",
                 color: "#a78bfa",
               },
