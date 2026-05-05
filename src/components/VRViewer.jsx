@@ -38,9 +38,6 @@ export default function VRViewer({ src, onClose }) {
   const sceneRef       = useRef(null);
   const handleCloseRef = useRef(() => {});
   const handleReplayRef = useRef(() => {});
-  const handleUnmuteRef = useRef(() => {});
-  const handlePauseToggleRef = useRef(() => {});
-  const handleSkipRef = useRef(() => {});
   const videoRef       = useRef(null);
   const outerRef       = useRef(null);
   const closedRef      = useRef(false);
@@ -207,7 +204,6 @@ export default function VRViewer({ src, onClose }) {
     video.play().catch(() => {});
     toast('🔊 Audio enabled.', 'success', 2000);
   }
-  handleUnmuteRef.current = handleUnmute;
 
   function handlePauseToggle() {
     const video = videoRef.current;
@@ -220,14 +216,12 @@ export default function VRViewer({ src, onClose }) {
       setPaused(true);
     }
   }
-  handlePauseToggleRef.current = handlePauseToggle;
 
   function handleSkip(seconds) {
     const video = videoRef.current;
     if (!video) return;
     video.currentTime = Math.max(0, video.currentTime + seconds);
   }
-  handleSkipRef.current = handleSkip;
 
   function handleFullscreenToggle() {
     const scene = sceneRef.current;
@@ -255,32 +249,20 @@ export default function VRViewer({ src, onClose }) {
     }
   }
 
-  // ── Attach A-Frame entity click listeners for in-headset UI ──
+  // ── Attach A-Frame entity click listeners for VR fallback UI ──
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
-    const cleanups = [];
-
-    function bindClick(id, handler) {
-      const el = scene.querySelector(id);
-      if (!el) return;
-      const onClick = event => {
-        event.stopPropagation();
-        handler();
-      };
-      el.addEventListener('click', onClick);
-      cleanups.push(() => el.removeEventListener('click', onClick));
-    }
-
     function attach() {
-      bindClick('#vr-replay-plane', () => handleReplayRef.current());
-      bindClick('#vr-exit-plane', () => handleCloseRef.current());
-      bindClick('#vr-panel-exit', () => handleCloseRef.current());
-      bindClick('#vr-panel-unmute', () => handleUnmuteRef.current());
-      bindClick('#vr-panel-back', () => handleSkipRef.current(-10));
-      bindClick('#vr-panel-play', () => handlePauseToggleRef.current());
-      bindClick('#vr-panel-forward', () => handleSkipRef.current(10));
+      const replayPlane = scene.querySelector('#vr-replay-plane');
+      const exitPlane = scene.querySelector('#vr-exit-plane');
+      if (replayPlane) {
+        replayPlane.addEventListener('click', () => handleReplayRef.current());
+      }
+      if (exitPlane) {
+        exitPlane.addEventListener('click', () => handleCloseRef.current());
+      }
     }
 
     if (scene.hasLoaded) {
@@ -288,11 +270,6 @@ export default function VRViewer({ src, onClose }) {
     } else {
       scene.addEventListener('loaded', attach, { once: true });
     }
-
-    return () => {
-      scene.removeEventListener('loaded', attach);
-      cleanups.forEach(cleanup => cleanup());
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -346,77 +323,6 @@ export default function VRViewer({ src, onClose }) {
               animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 0.5 0.5 0.5"
               animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 0.5 0.5 0.5; to: 0.1 0.1 0.1"
             />
-
-            {/* In-headset controls. These are real VR entities, so they work even when WebXR DOM Overlay is unavailable. */}
-            <a-entity
-              id="vr-headset-controls"
-              visible={!loading && !error && isVRMode ? 'true' : 'false'}
-              position="0 -1.12 -3"
-            >
-              <a-plane color="#050705" opacity="0.82" width="5.8" height="1.15" material="shader: flat"></a-plane>
-              <a-text value="PLAYBACK" align="center" position="0 0.38 0.02" width="4.8" color="#6B7A3A"></a-text>
-
-              <a-plane
-                className="clickable"
-                id="vr-panel-exit"
-                position="-2.35 -0.06 0.03"
-                width="0.82"
-                height="0.55"
-                color="#171b12"
-                material="shader: flat"
-              >
-                <a-text value="EXIT" align="center" width="3.6" color="#B8D44A" position="0 0 0.02"></a-text>
-              </a-plane>
-
-              <a-plane
-                className="clickable"
-                id="vr-panel-back"
-                position="-1.25 -0.06 0.03"
-                width="0.82"
-                height="0.55"
-                color="#171b12"
-                material="shader: flat"
-              >
-                <a-text value="-10" align="center" width="3.6" color="#B8D44A" position="0 0 0.02"></a-text>
-              </a-plane>
-
-              <a-plane
-                className="clickable"
-                id="vr-panel-play"
-                position="0 -0.06 0.03"
-                width="1.15"
-                height="0.55"
-                color={paused ? '#273015' : '#171b12'}
-                material="shader: flat"
-              >
-                <a-text value={paused ? 'PLAY' : 'PAUSE'} align="center" width="3.8" color="#C8E055" position="0 0 0.02"></a-text>
-              </a-plane>
-
-              <a-plane
-                className="clickable"
-                id="vr-panel-forward"
-                position="1.25 -0.06 0.03"
-                width="0.82"
-                height="0.55"
-                color="#171b12"
-                material="shader: flat"
-              >
-                <a-text value="+10" align="center" width="3.6" color="#B8D44A" position="0 0 0.02"></a-text>
-              </a-plane>
-
-              <a-plane
-                className="clickable"
-                id="vr-panel-unmute"
-                visible={muted ? 'true' : 'false'}
-                position="2.35 -0.06 0.03"
-                width="0.82"
-                height="0.55"
-                color="#2a2109"
-                material="shader: flat"
-              >
-                <a-text value="SOUND" align="center" width="3.2" color="#C89A18" position="0 0 0.02"></a-text>
-              </a-plane>
-            </a-entity>
           </a-camera>
 
           {/* In-scene fallback UI for headsets without DOM Overlay */}
