@@ -1,14 +1,15 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { drawWatermark } from '../utils/watermark.js';
+import { initEMEProtection, subscribeCaptureProtection } from '../utils/contentProtection.js';
 
 /**
  * WatermarkedPlayer
  *
  * Wraps a <video> element with:
- *   1. An invisible canvas overlay that redraws 3 rotated watermark stamps
- *      at random positions every 8–12 seconds (visual watermark).
- *   2. An LSB steganographic watermark embedded into video frames every
- *      ~5 seconds so it survives screen recording (bonus track).
+ *   1. EME Hardware Video Pipeline setup for Meta Quest & Chromium browsers
+ *      (triggers hardware overlay screenshot blackout).
+ *   2. Real-time screen capture, screenshot shortcut, and window blur blackout shield.
+ *   3. Dynamic visual watermark overlay stamps.
  *
  * Props:
  *   src      {string}  — video blob URL or stream URL
@@ -23,7 +24,26 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
   const wmarkTimer   = useRef(null); // visual redraw interval
   const containerRef = useRef(null);
 
-  // ── Resize canvas to match container ──────────────────────────────────
+  // ── 1. EME Hardware Init ───────────────────────────────────────
+  // Re-runs when src changes (new video = new EME check)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      initEMEProtection(video).catch(() => {});
+    }
+  }, [src]);
+
+  // ── 2. Screen-Capture Protection Subscription ───────────────────────
+  // Subscribed once on mount — not dependent on src
+  const [isBlackout, setIsBlackout] = useState(false);
+  useEffect(() => {
+    const unsubscribe = subscribeCaptureProtection((blackoutState) => {
+      setIsBlackout(blackoutState);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ── 3. Resize canvas to match container ────────────────────────────────
   const syncCanvasSize = useCallback(() => {
     const container = containerRef.current;
     const canvas    = overlayRef.current;
@@ -35,7 +55,7 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
     }
   }, []);
 
-  // ── Redraw visual watermark ───────────────────────────────────────────
+  // ── 4. Redraw visual watermark ─────────────────────────────────────────
   const redraw = useCallback(() => {
     syncCanvasSize();
     if (overlayRef.current && userId) {
@@ -46,7 +66,7 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
   // ── Fullscreen resize ─────────────────────────────────────────────────
   useEffect(() => {
     function onFullscreenChange() {
-      setTimeout(redraw, 50); // brief delay for browser to resize canvas
+      setTimeout(redraw, 50);
     }
     document.addEventListener('fullscreenchange',       onFullscreenChange);
     document.addEventListener('webkitfullscreenchange', onFullscreenChange);
@@ -63,19 +83,16 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
     return () => ro.disconnect();
   }, [redraw]);
 
-  // ── Main effect: start/restart intervals when src or userId changes ──
+  // ── Main watermark effect ─────────────────────────────────────────────
   useEffect(() => {
     if (!userId || !src) return;
-
-    // Draw immediately on mount
     redraw();
 
-    // Randomise interval between 8 000 and 12 000 ms
     function scheduleNext() {
       const delay = 8000 + Math.random() * 4000;
       wmarkTimer.current = setTimeout(() => {
         redraw();
-        scheduleNext(); // chain to next random interval
+        scheduleNext();
       }, delay);
     }
     scheduleNext();
@@ -86,7 +103,18 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
   }, [src, userId, redraw]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+      }}
+      onContextMenu={e => e.preventDefault()}
+      onDragStart={e => e.preventDefault()}
+    >
       <video
         ref={videoRef}
         src={src}
@@ -97,11 +125,13 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
           objectFit: 'contain',
           background: '#000',
           zIndex: 10,
+          opacity: isBlackout ? 0 : 1,
+          visibility: isBlackout ? 'hidden' : 'visible',
           ...(videoProps.style || {}),
         }}
       />
 
-      {/* Visual watermark overlay — pointer-events:none so controls work */}
+      {/* Visual watermark overlay */}
       <canvas
         ref={overlayRef}
         style={{
@@ -112,6 +142,50 @@ export default function WatermarkedPlayer({ src, userId, videoRef: externalRef, 
         }}
       />
 
+      {/* ── Screen Capture & Blur Anti-Recording Blackout Overlay ── */}
+      {isBlackout && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 99,
+            background: '#040504',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: 24,
+            textAlign: 'center',
+            border: '1px solid rgba(255, 68, 68, 0.4)',
+          }}
+        >
+          <span style={{ fontSize: '2.4rem' }}>🔒</span>
+          <p
+            style={{
+              color: '#ff6b6b',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              fontFamily: 'var(--mono)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              margin: 0,
+            }}
+          >
+            PROTECTED MEDIA — SCREEN CAPTURE BLOCKED
+          </p>
+          <span
+            style={{
+              color: '#a0aec0',
+              fontSize: '0.75rem',
+              fontFamily: 'var(--mono)',
+              maxWidth: 380,
+            }}
+          >
+            Video playback is hidden while system screenshots, screen recorders, or menu overlays are active.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

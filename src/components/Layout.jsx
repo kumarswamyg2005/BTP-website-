@@ -6,7 +6,8 @@ import { useToast } from '../context/ToastContext.jsx';
 export default function Layout() {
   const toast = useToast();
 
-  // Anti-download / anti-screenshot protections
+  // Anti-download / anti-drag protections (screenshot interception is handled
+  // globally by contentProtection.js with correct Mac key code detection)
   useEffect(() => {
     function handleContextMenu(e) {
       e.preventDefault();
@@ -14,15 +15,9 @@ export default function Layout() {
     }
 
     function handleKeyDown(e) {
-      const blocked =
-        e.key === 'PrintScreen' ||
-        (e.ctrlKey && e.shiftKey && ['i', 'j', 'c', 's', 'p'].includes(e.key.toLowerCase())) ||
-        (e.metaKey && e.shiftKey && ['3', '4'].includes(e.key)) ||
-        (e.ctrlKey && e.key.toLowerCase() === 's');
-
-      if (blocked) {
+      // Block only Ctrl+S (page save) — all screenshot shortcuts handled by contentProtection.js
+      if (e.ctrlKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        toast('⛔ Capturing content is disabled.', 'error', 2500);
       }
     }
 
@@ -46,6 +41,7 @@ export default function Layout() {
       document.getElementById('unity-shield')?.remove();
     };
   }, [toast]);
+
 
   return (
     <div id="page-app" style={{ display: 'block' }}>

@@ -137,8 +137,7 @@ export default function UploadModal({ onClose }) {
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Tactical Simulation Beta"
-              required
+              placeholder="e.g. Tactical Simulation Beta (or leave blank to use filename)"
             />
           </div>
 

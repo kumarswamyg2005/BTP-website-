@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useToast } from '../context/ToastContext.jsx';
+import { initEMEProtection, subscribeCaptureProtection, getBlackTexture, registerXRSession } from '../utils/contentProtection.js';
 
 /*
   VRViewer — A-Frame 360° VR player
@@ -35,14 +36,65 @@ export default function VRViewer({ src, onClose }) {
   const [xrSupported,  setXrSupported]  = useState(false);
   const [ended,        setEnded]        = useState(false);
 
-  const sceneRef       = useRef(null);
-  const handleCloseRef = useRef(() => {});
-  const handleReplayRef = useRef(() => {});
-  const videoRef       = useRef(null);
-  const outerRef       = useRef(null);
-  const closedRef      = useRef(false);
-  const xrSupportedRef = useRef(false); // ref copy so applyTexture closure can read it
-  const vrReadyRef     = useRef(false); // true once scene+video are ready
+  const [isProtectionBlackout, setIsProtectionBlackout] = useState(false);
+
+  const sceneRef          = useRef(null);
+  const handleCloseRef    = useRef(() => {});
+  const handleReplayRef   = useRef(() => {});
+  const videoRef          = useRef(null);
+  const outerRef          = useRef(null);
+  const closedRef         = useRef(false);
+  const xrSupportedRef    = useRef(false); // ref copy so applyTexture closure can read it
+  const vrReadyRef           = useRef(false); // true once scene+video are ready
+  const videoTextureRef      = useRef(null);  // stores 360 video texture for protection restores
+  const xrSessionCleanupRef  = useRef(null);  // XR session visibilitychange unsubscribe fn
+  const xrBlackoutCallbackRef = useRef(null); // current XR blackout callback for registerXRSession
+
+  // ── Protection EME Init & Anti-Capture Subscription ───────────
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      initEMEProtection(video).catch(() => {});
+    }
+
+    function applyBlackout(blackout) {
+      setIsProtectionBlackout(blackout);
+      const scene  = sceneRef.current;
+      const sphere = scene?.querySelector('#vr-sphere');
+      const mesh   = sphere?.getObject3D('mesh');
+      if (mesh && mesh.material) {
+        if (blackout) {
+          mesh.visible = false;
+          if (sphere) sphere.setAttribute('visible', 'false');
+          const blackTex = getBlackTexture();
+          if (blackTex) {
+            mesh.material.map = blackTex;
+            mesh.material.needsUpdate = true;
+          }
+        } else {
+          mesh.visible = true;
+          if (sphere) sphere.setAttribute('visible', 'true');
+          if (videoTextureRef.current) {
+            mesh.material.map = videoTextureRef.current;
+            mesh.material.needsUpdate = true;
+          }
+        }
+      }
+    }
+
+    // Store callback so onEnterVR can pass it to registerXRSession
+    xrBlackoutCallbackRef.current = applyBlackout;
+
+    const unsubscribe = subscribeCaptureProtection(applyBlackout);
+    return () => {
+      unsubscribe();
+      // Clean up any active XR session listener
+      if (xrSessionCleanupRef.current) {
+        xrSessionCleanupRef.current();
+        xrSessionCleanupRef.current = null;
+      }
+    };
+  }, []);
 
   // ── Attempt auto-enter VR — needs both xr support AND scene ready ──
   function tryAutoEnterVR() {
@@ -116,6 +168,7 @@ export default function VRViewer({ src, onClose }) {
         tex.minFilter = THREE.LinearFilter;
         tex.magFilter = THREE.LinearFilter;
         tex.format    = THREE.RGBAFormat;
+        videoTextureRef.current   = tex;
         mesh.material.map         = tex;
         mesh.material.needsUpdate = true;
         mesh.material.side        = THREE.BackSide;
@@ -137,16 +190,40 @@ export default function VRViewer({ src, onClose }) {
 
     function onSceneLoaded() { sceneReady = true; applyTexture(); }
     function onCanPlay()     { videoReady = true; applyTexture(); }
-    function onVideoError()  { setLoading(false); setError(true); }
+    function onVideoError(e) {
+      if (closedRef.current) return;
+      if (video.error && video.error.code === 1) return; // MEDIA_ERR_ABORTED
+      console.error('VRViewer video error:', e, video.error);
+      setLoading(false);
+      setError(true);
+    }
 
     function onEnterVR() {
       setIsVRMode(true);
       const v = videoRef.current;
       if (v && v.paused && !closedRef.current) v.play().catch(() => {});
+
+      // Register XR session for Meta Quest headset menu visibility events
+      // A-Frame exposes the active XR session via scene.renderer.xr.getSession()
+      try {
+        const xrSession = sceneRef.current?.renderer?.xr?.getSession?.();
+        if (xrSession && xrBlackoutCallbackRef.current) {
+          // Clean up any previous XR session listener
+          if (xrSessionCleanupRef.current) xrSessionCleanupRef.current();
+          xrSessionCleanupRef.current = registerXRSession(xrSession, xrBlackoutCallbackRef.current);
+        }
+      } catch (_e) {
+        // XR session not available — graceful degradation
+      }
     }
 
     function onExitVR() {
       setIsVRMode(false);
+      // Unregister XR session listener when leaving VR
+      if (xrSessionCleanupRef.current) {
+        xrSessionCleanupRef.current();
+        xrSessionCleanupRef.current = null;
+      }
     }
 
     if (scene.hasLoaded) {
@@ -156,9 +233,14 @@ export default function VRViewer({ src, onClose }) {
     }
     scene.addEventListener('enter-vr', onEnterVR);
     scene.addEventListener('exit-vr',  onExitVR);
-    video.addEventListener('canplay',  onCanPlay,    { once: true });
-    video.addEventListener('error',    onVideoError, { once: true });
-    video.load();
+    video.addEventListener('canplay',    onCanPlay,    { once: true });
+    video.addEventListener('loadeddata', onCanPlay,    { once: true });
+    video.addEventListener('error',      onVideoError, { once: true });
+
+    if (video.readyState >= 2) {
+      videoReady = true;
+      applyTexture();
+    }
 
     return () => {
       closedRef.current = true;
@@ -166,6 +248,9 @@ export default function VRViewer({ src, onClose }) {
       scene.removeEventListener('loaded',   onSceneLoaded);
       scene.removeEventListener('enter-vr', onEnterVR);
       scene.removeEventListener('exit-vr',  onExitVR);
+      video.removeEventListener('canplay',    onCanPlay);
+      video.removeEventListener('loadeddata', onCanPlay);
+      video.removeEventListener('error',      onVideoError);
     };
   }, [src, toast]);
 
@@ -279,7 +364,7 @@ export default function VRViewer({ src, onClose }) {
       <video
         ref={videoRef}
         src={src}
-        style={{ display: 'none' }}
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', top: -9999, left: -9999 }}
         playsInline
         webkit-playsinline=""
         preload="auto"
@@ -349,7 +434,16 @@ export default function VRViewer({ src, onClose }) {
           </div>
         )}
 
-        {/* ── Error overlay ───────────────────────────────── */}
+        {/* ── Protection overlay ───────────────────────────── */}
+        {isProtectionBlackout && !loading && !error && (
+          <div className="vr-error-overlay" style={{ background: '#040504', zIndex: 999 }}>
+            <span className="vr-error-icon">🔒</span>
+            <p className="vr-error-text" style={{ color: '#ff6b6b' }}>PROTECTED MEDIA — SCREEN CAPTURE BLOCKED</p>
+            <p style={{ color: '#a0aec0', fontSize: '0.75rem', fontFamily: 'var(--hud-font)', textAlign: 'center', maxWidth: 360, margin: 0 }}>
+              360° VR video stream is hidden while system screenshots, recording, or menu overlays are active.
+            </p>
+          </div>
+        )}
         {error && (
           <div className="vr-error-overlay">
             <span className="vr-error-icon">⚠</span>

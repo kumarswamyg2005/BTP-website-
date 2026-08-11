@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import PageTransition from '../components/PageTransition.jsx';
+import ParticleCanvas from '../components/ParticleCanvas.jsx';
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
@@ -109,7 +110,7 @@ export default function LoginPage() {
               Secure VR Platform
             </div>
 
-            <div className="static-wordmark">UNITY STREAM</div>
+            <ParticleCanvas />
 
             <p className="login-hero-desc">
               Next-generation encrypted VR content delivery with intelligent headset management

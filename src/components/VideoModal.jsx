@@ -151,6 +151,10 @@ export default function VideoModal({ video, onClose }) {
       try {
         const resp = await fetch(video.binSrc);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const contentType = resp.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          throw new Error('Server returned HTML fallback instead of binary asset.');
+        }
         const totalBytes = Number(resp.headers.get('content-length') || 0);
         // Stream into buffer with progress if Content-Length is known
         let arrayBuffer;
@@ -259,9 +263,10 @@ export default function VideoModal({ video, onClose }) {
           <div className="modal-header">
             <div>
               <h2 className="modal-title">{video.title}</h2>
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                 <span className="badge">{capitalize(video.category)}</span>
                 <span className="badge badge-cyan">🔐 Encrypted</span>
+                <span className="badge badge-purple">🛡️ DRM &amp; Anti-Capture</span>
               </div>
             </div>
             <button className="modal-close" onClick={handleClose} aria-label="Close">✕</button>

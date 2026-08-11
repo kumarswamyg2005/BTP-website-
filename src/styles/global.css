@@ -801,3 +801,33 @@ textarea.form-input {
     font-size: 0.88rem;
   }
 }
+
+/* ── Missing utility / page classes ───────────────────────────────── */
+
+/* Text colour modifier — used on stat values ("purple" accent for AES-256 stat) */
+.purple {
+  color: #a78bfa;
+}
+
+/* Particle canvas — dimensions set dynamically by ParticleCanvas.jsx (IS_COARSE-aware) */
+.particle-canvas {
+  display: block;
+  width: 100%;
+  height: auto; /* canvas element's own height attribute controls visual size */
+  border-radius: var(--radius-md);
+  max-width: 100%;
+}
+
+/* Page-level container wrappers — provide consistent top spacing */
+.admin-page,
+.cloud-page,
+.headsets-page {
+  min-height: calc(100vh - var(--navbar-h));
+  position: relative;
+  z-index: 1;
+}
+
+/* Cloud sync-settings section wrapper */
+.cloud-settings-section {
+  border-radius: var(--radius-lg);
+}

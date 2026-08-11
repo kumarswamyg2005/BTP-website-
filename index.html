@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="icon" type="image/png" href="/logo.png" />
   <title>Unity Stream — Secure VR Streaming Platform</title>
   <meta name="description"
     content="Unity Stream: Enterprise-grade encrypted VR video streaming with headset management. Secure, fast, immersive." />
@@ -21,11 +21,136 @@
 </head>
 
 <body>
+  <!-- ═══════════════════════════════════════════════════════════
+       CONTENT PROTECTION SHIELD — runs synchronously before React
+       Overrides all browser-accessible screen capture APIs.
+       Fires window.__captureStateChange events consumed by
+       contentProtection.js / subscribeCaptureProtection().
+       ═══════════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Global flag: true while any screen capture stream is active
+      window.__captureActive = false;
+      // Set of active display media tracks being monitored
+      window.__captureTrackSet = new Set();
+
+      function fireCaptureEvent(active) {
+        if (window.__captureActive === active) return;
+        window.__captureActive = active;
+        window.dispatchEvent(new CustomEvent('__captureStateChange', { detail: { active: active } }));
+      }
+
+      function monitorStream(stream) {
+        if (!stream) return;
+        var tracks = stream.getTracks();
+        if (!tracks || tracks.length === 0) return;
+        tracks.forEach(function (track) {
+          window.__captureTrackSet.add(track);
+          fireCaptureEvent(true);
+          track.addEventListener('ended', function () {
+            window.__captureTrackSet.delete(track);
+            if (window.__captureTrackSet.size === 0) {
+              fireCaptureEvent(false);
+            }
+          });
+          // Also monitor mute state (some recorders pause tracks)
+          track.addEventListener('mute', function () {
+            // Track is still active but muted — keep blackout
+          });
+        });
+      }
+
+      // ── 1. Override getDisplayMedia ─────────────────────────────
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        var _origGetDisplay = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+        navigator.mediaDevices.getDisplayMedia = function (constraints) {
+          fireCaptureEvent(true); // fire immediately before user even accepts
+          return _origGetDisplay(constraints).then(function (stream) {
+            monitorStream(stream);
+            return stream;
+          }).catch(function (err) {
+            // User cancelled — check if any tracks still active
+            if (window.__captureTrackSet.size === 0) {
+              fireCaptureEvent(false);
+            }
+            throw err;
+          });
+        };
+      }
+
+      // ── 2. Override getUserMedia with screen/video capture constraints ─
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        var _origGetUser = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+        navigator.mediaDevices.getUserMedia = function (constraints) {
+          if (constraints && constraints.video &&
+              (constraints.video.mediaSource === 'screen' ||
+               constraints.video.mediaSource === 'window' ||
+               constraints.video.displaySurface)) {
+            fireCaptureEvent(true);
+          }
+          return _origGetUser(constraints).then(function (stream) {
+            if (constraints && constraints.video && constraints.video.displaySurface) {
+              monitorStream(stream);
+            }
+            return stream;
+          });
+        };
+      }
+
+      // ── 3. Block HTMLVideoElement.captureStream ─────────────────
+      if (window.HTMLVideoElement && HTMLVideoElement.prototype.captureStream) {
+        HTMLVideoElement.prototype.captureStream = function () {
+          fireCaptureEvent(true);
+          // Return an empty MediaStream — no video data leaks
+          return new MediaStream();
+        };
+        // Also block mozCaptureStream (Firefox)
+        if (HTMLVideoElement.prototype.mozCaptureStream) {
+          HTMLVideoElement.prototype.mozCaptureStream = function () {
+            fireCaptureEvent(true);
+            return new MediaStream();
+          };
+        }
+      }
+
+      // ── 4. Block HTMLCanvasElement.captureStream ────────────────
+      if (window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream) {
+        HTMLCanvasElement.prototype.captureStream = function () {
+          fireCaptureEvent(true);
+          return new MediaStream();
+        };
+      }
+
+      // ── 5. Block screen capture via getInternals/debug APIs ─────
+      // Prevent ImageCapture from grabbing video frames
+      if (window.ImageCapture) {
+        var _origGrabFrame = ImageCapture.prototype.grabFrame;
+        if (_origGrabFrame) {
+          ImageCapture.prototype.grabFrame = function () {
+            return Promise.reject(new DOMException('NotAllowedError', 'Content is protected'));
+          };
+        }
+      }
+    })();
+  </script>
+
   <script>
     window.addEventListener('error', function (event) {
-      if (document.body) {
-        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#900;color:#fff;z-index:999999;padding:40px;font-family:monospace;font-size:16px;"><h1>CRITICAL ERROR:</h1><p>' + event.message + '</p><pre>' + (event.error ? event.error.stack : '') + '</pre></div>';
-      }
+      if (!document.body) return;
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#900;color:#fff;z-index:999999;padding:40px;font-family:monospace;font-size:16px;overflow:auto';
+      var h = document.createElement('h1');
+      h.textContent = 'CRITICAL ERROR:';
+      var p = document.createElement('p');
+      p.textContent = event.message || 'Unknown error';
+      var pre = document.createElement('pre');
+      pre.textContent = (event.error && event.error.stack) ? event.error.stack : '';
+      overlay.appendChild(h);
+      overlay.appendChild(p);
+      overlay.appendChild(pre);
+      document.body.appendChild(overlay);
     });
   </script>
   <div id="root"></div>
