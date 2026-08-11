@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import ParticleCanvas from './ParticleCanvas.jsx';
 
 export default function Layout() {
   const toast = useToast();
@@ -49,6 +50,19 @@ export default function Layout() {
       <div className="bg-grid"></div>
       <Navbar />
       <Outlet />
+
+      {/* ── Interactive Brand Footer ─────────────────────────── */}
+      <footer className="unity-footer">
+        <div className="unity-footer-label">
+          <span className="unity-footer-line" />
+          <span>MOVE YOUR CURSOR OVER THE LOGO</span>
+          <span className="unity-footer-line" />
+        </div>
+        <ParticleCanvas variant="footer" />
+        <div className="unity-footer-copy">
+          © {new Date().getFullYear()} Unity Stream — Secure VR Streaming Platform &nbsp;·&nbsp; All content encrypted with AES-256-CTR
+        </div>
+      </footer>
     </div>
   );
 }

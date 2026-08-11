@@ -8,10 +8,15 @@ const FRICTION      = 0.82;
 // VR drift — gentle autonomous wave when no mouse available
 const DRIFT_EASE    = 0.06;
 const DRIFT_AMP     = 6;   // px max drift from origin
-const COLORS = [
+const DEFAULT_COLORS = [
   '#4f8ef7', '#4f8ef7', '#4f8ef7',
   '#7c5cfc', '#a78bfa',
   '#6eb3ff',
+];
+const FOOTER_COLORS = [
+  '#c8ff00', '#c8ff00', '#b8d44a',
+  '#a0c832', '#d4ff1a',
+  '#e8ff80',
 ];
 
 // True if the primary pointer is coarse (VR controller, touch, etc.)
@@ -30,7 +35,8 @@ function Particle(ox, oy, sx, sy, color, size) {
   this.phase = Math.random() * Math.PI * 2;
 }
 
-export default function ParticleCanvas() {
+export default function ParticleCanvas({ variant = 'default' }) {
+  const COLORS = variant === 'footer' ? FOOTER_COLORS : DEFAULT_COLORS;
   const canvasRef = useRef(null);
   const stateRef  = useRef({
     particles: [],
@@ -169,8 +175,8 @@ export default function ParticleCanvas() {
       tick();
     }
 
-    // Only attach mouse events on desktop
-    const panel = document.querySelector('.login-left');
+    // Attach mouse events to the canvas's own parent — works on login page AND footer
+    const panel = canvas.parentElement;
     if (panel && !IS_COARSE) {
       panel.addEventListener('mousemove', onMove);
       panel.addEventListener('mouseleave', onLeave);
